@@ -157,6 +157,7 @@ class RegionScatterPlot:
         """
         Will place the given labels.
         """
+        #TODO: implement the labels
         rad_values = np.deg2rad(ra_values) + self.alpha
         z_axis_points = np.ones(len(rad_values))*self.radian_limits[1]
 
