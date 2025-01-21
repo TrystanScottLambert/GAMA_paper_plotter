@@ -1,3 +1,5 @@
 *.fits
 *.venv/*
 .venv/*
+*.csv
+*.dat
