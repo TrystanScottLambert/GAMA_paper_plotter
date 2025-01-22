@@ -61,6 +61,8 @@ G12area = skyarea(c(174,186), c(-3,2))
 G15area = skyarea(c(211.5,223.5), c(-2,3))
 G23area = skyarea(c(339, 351), c(-35, -30))
 gama_fraction_sky = sum(G09area['areafrac'], G12area['areafrac'], G15area['areafrac'], G23area['areafrac'])
+### THIS NEEDS TO BE EDITED BASED ON THE RANDOMS I GUESS
+gama_fraction_sky = G09area['areafrac']
 
 distfunc_z2D = cosmapfunc('z', 'CoDist', H0=100, OmegaM=0.25, OmegaL=0.75, zrange=c(0,1), step='a', res=N) # redshift to comoving distance
 distfunc_D2z = cosmapfunc('CoDist', 'z', H0=100, OmegaM=0.25, OmegaL=0.75, zrange=c(0,1), step='a', res=N) # comoving distance to redshift
@@ -110,6 +112,6 @@ cat=FoFempint(
   left=129, right=141, top = 3, bottom = -2)
 
 # writing the group catalog and the galaxy linking table.
-write.csv(as.data.frame(cat$grouptable), 'group_catalog.csv')
-write.csv(as.data.frame(cat$grefs), 'galaxy_linking_table.csv')
+write.csv(as.data.frame(cat$grouptable), 'group_catalog.csv', row.names=FALSE, quote=FALSE)
+write.csv(as.data.frame(cat$grefs), 'galaxy_linking_table.csv', row.names=FALSE, quote=FALSE)
 
