@@ -105,7 +105,7 @@ class RegionScatterPlot:
 
         phi = np.deg2rad(ra)
         self.alpha = (np.pi / 2) - np.mean(phi)
-        self.radians = phi + alpha
+        self.radians = phi + self.alpha
         self.r = redshift
         self.r_lim = np.max(self.r)
         self.radian_limits = (np.min(self.radians), np.max(self.radians))
@@ -148,7 +148,6 @@ class RegionScatterPlot:
             draw_horizontal_line(self.radian_limits, r_pos, **kwargs)
 
         if labels:
-            print(r_positions)
             for rad_pos, r_pos in zip(radian_positions, r_positions):
                 text_x, text_y = polar_to_cartesian(self.radian_limits[1], r_pos)
                 plt.text(text_x - 0.01, text_y, f"{r_pos:.1f}")

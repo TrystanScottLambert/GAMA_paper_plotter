@@ -7,7 +7,7 @@ library(data.table)
 # Create the interpolated functions which will be used in the final implementation.
 #
 
-redshift = seq(0, 2, by=1e-4)
+redshift = seq(0, 1.4, by=1e-4)
 k_corrections={}
 for(i in 1:length(redshift)){
   k_corrections = c(k_corrections, KEcorr(redshift[i])[2])} #K+E corrections
@@ -53,7 +53,7 @@ LFswmlintfuncLum=approxfun(tempLFswmlLum[,1], tempLFswmlLum[,4], rule=c(2,2))
 #
 #Randoms stuff:
 #
-RanCat = fread('../my_tools/group_finders/FoFR/gen_ran_out.randoms.csv')
+RanCat = fread('GAMA_randoms_skewed_normal.csv')
 
 N = 1e4
 G09area = skyarea(c(129,141), c(-2,3))
@@ -65,7 +65,7 @@ gama_fraction_sky = sum(G09area['areafrac'], G12area['areafrac'], G15area['areaf
 distfunc_z2D = cosmapfunc('z', 'CoDist', H0=100, OmegaM=0.25, OmegaL=0.75, zrange=c(0,1), step='a', res=N) # redshift to comoving distance
 distfunc_D2z = cosmapfunc('CoDist', 'z', H0=100, OmegaM=0.25, OmegaL=0.75, zrange=c(0,1), step='a', res=N) # comoving distance to redshift
 RanCat[,'CoDist'] = distfunc_z2D(RanCat[,z])
-GalRanCounts = dim(RanCat)[1]/400 # Don't know where this 400 comes from.
+GalRanCounts = dim(RanCat)[1]/(400 * 4)
 
 #smooth out the histogram of comoving distances
 bin = 40
@@ -102,10 +102,14 @@ optuse=c(0.06, 18, 0, -0.02, 0.63, 9.0000, 1.5000, 12.0000)
 data(circsamp)
 cat=FoFempint(
   data=gama, bgal=optuse[1], rgal=optuse[2], Eb=optuse[3], Er=optuse[4], 
-  coscale=T, NNscale=3, groupcalc=T, precalc=F, halocheck=F, apmaglim=20.8, colnames=colnames(gama), 
+  coscale=T, NNscale=3, groupcalc=T, precalc=F, halocheck=F, apmaglim=19.65, colnames=colnames(gama), 
   denfunc=LFswmlfunc, intfunc=RunningDensity_z, intLumfunc=LFswmlintfuncLum, 
   useorigind=F,dust=0,scalemass=1,scaleflux=1,extra=F,
   MagDenScale=optuse[5],deltacontrast=optuse[6],deltarad=optuse[7],deltar=optuse[8],
   circsamp=circsamp,Mmax=1e15, zvDmod = z_to_dmod, Dmodvz = dmod_to_z,
   left=129, right=141, top = 3, bottom = -2)
+
+# writing the group catalog and the galaxy linking table.
+write.csv(as.data.frame(cat$grouptable), 'group_catalog.csv')
+write.csv(as.data.frame(cat$grefs), 'galaxy_linking_table.csv')
 
