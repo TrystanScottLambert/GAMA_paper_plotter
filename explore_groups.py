@@ -36,10 +36,36 @@ def add_xyz(data_frame: pd.DataFrame, ra_col: str, dec_col: str, z_col: str) -> 
     data_frame['z'] = c.cartesian.z.value
     return data_frame
 
+import numpy as np
+
+def calculate_velocity_dispersion(Z, sigerr):
+    # Sort velocities and compute vels
+    vels = np.sort(Z * 299792.458) / (1 + np.median(Z))
+    N = len(vels)
+    
+    # Compute gaps
+    gaps = vels[1:N] - vels[0:(N - 1)]
+    
+    # Compute weights
+    i = np.arange(1, N)  # Equivalent to 1:(N - 1) in R
+    weights = i * (N - i)
+    
+    # Compute siggap
+    siggap = np.sum(gaps * weights) * np.sqrt(np.pi) / (N * (N - 1))
+    
+    # Compute raw velocity dispersion
+    VelDispRaw = np.sqrt((N * siggap**2) / (N - 1))
+    
+    # Corrected velocity dispersion
+    VelDisp = np.sqrt(max(0, VelDispRaw**2 - sigerr**2))
+    
+    # Velocity error
+    VelErr = sigerr
+    
+    return VelDisp, VelErr
 
 if __name__ == '__main__':
-    gal_ids, group_ids = np.loadtxt('galaxy_linking_table.csv', delimiter=',', unpack=True, skiprows=1, usecols=(1, 2))
-    #gal_ids = [int(item) -1 for item in gal_ids]
+    gal_ids, group_ids = np.loadtxt('galaxy_linking_table.csv', delimiter=',', unpack=True, skiprows=1)
 
     df_galaxies = pd.read_csv('GAMA_galaxies.dat', sep='\s+')
     add_xyz(df_galaxies, 'RA', 'DEC', 'Z')
@@ -47,33 +73,38 @@ if __name__ == '__main__':
 
     infile = 'group_catalog.csv'
     df = pd.read_csv(infile)
-    df = df[df['MedianZ'] < 0.5]
-    df = df[df['Mult'] > 2]
 
     add_xyz(df, 'IterCenRA', 'IterCenDEC', 'MedianZ')
-    quick_distribution(df, 'Mult')
-    scatter = RegionScatterPlot(df['IterCenRA'], df['MedianZ'], 1, s=np.log10(df['Mult'])*10, alpha=0.5, facecolor='none', edgecolors='k')
-    scatter.plot_border(color='k', lw=3)
-    scatter.plot_grid(color='r', alpha=0.5)
+    df_no_disp = df[(df['VelDisp'] == 0)]
+    plt.scatter(df_no_disp['BCGRA'], df_no_disp['BCGDEC'])
+
+    plt.xlabel('RA')
+    plt.ylabel('DEC')
+
+    #scatter = RegionScatterPlot(df['IterCenRA'], df['MedianZ'], 1, s=np.log10(df['Mult'])*10, alpha=0.5, facecolor='none', edgecolors='k')
+    #scatter.plot_border(color='k', lw=3)
+    #scatter.plot_grid(color='r', alpha=0.5)
 
     plt.show()
 
-    plotter = pv.Plotter()
+    THREE_D_PLOT = True
+    if THREE_D_PLOT:
+        plotter = pv.Plotter()
 
-# Loop through each row in the dataframe and add a sphere
-    for _, row in df.iterrows():
-        center = (row['x'], row['y'], row['z'])  # Center of the sphere
-        radius = row['Rad50']  # Radius of the sphere
-        sphere = pv.Sphere(radius=radius, center=center)  # Create a sphere
-        plotter.add_mesh(sphere, style='wireframe', color='r', opacity=0.2)
+        # Loop through each row in the dataframe and add a sphere
+        for _, row in df.iterrows():
+            center = (row['x'], row['y'], row['z'])  # Center of the sphere
+            radius = row['Rad50']  # Radius of the sphere
+            sphere = pv.Sphere(radius=radius, center=center)  # Create a sphere
+            plotter.add_mesh(sphere, style='wireframe', color='r', opacity=0.2)
 
-    galaxy_points = df_group_galaxies[['x', 'y', 'z']].to_numpy()  # Convert to NumPy array
-    point_cloud = pv.PolyData(galaxy_points)
-    plotter.add_mesh(point_cloud, color='black', point_size=2, render_points_as_spheres=True)
+        galaxy_points = df_group_galaxies[['x', 'y', 'z']].to_numpy()  # Convert to NumPy array
+        point_cloud = pv.PolyData(galaxy_points)
+        plotter.add_mesh(point_cloud, color='black', point_size=2, render_points_as_spheres=True)
 
-    # Add labels or enhance visualization (optional)
-    #plotter.add_axes()  # Add coordinate axes
-    #plotter.show_bounds(grid='back')  # Show bounding box and grid
+        # Add labels or enhance visualization (optional)
+        #plotter.add_axes()  # Add coordinate axes
+        #plotter.show_bounds(grid='back')  # Show bounding box and grid
 
-    # Render the plot
-    plotter.show()
+        # Render the plot
+        plotter.show()
