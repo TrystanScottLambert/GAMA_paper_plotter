@@ -1,7 +1,11 @@
 # R script to run the GAMA group finder on G19
-library(FoF)
+#library(FoF)
 library(celestial)
 library(data.table)
+#detach("package:FoF", unload = TRUE)  # Unload the package
+remove.packages('FoF')
+devtools::install_local('/Users/00115372/Desktop/FoFR', force=TRUE)
+
 
 #
 # Create the interpolated functions which will be used in the final implementation.
@@ -10,14 +14,14 @@ library(data.table)
 redshift = seq(0, 1.4, by=1e-4)
 k_corrections={}
 for(i in 1:length(redshift)){
-  k_corrections = c(k_corrections, KEcorr(redshift[i])[2])} #K+E corrections
+  k_corrections = c(k_corrections, FoF::KEcorr(redshift[i])[2])} #K+E corrections
 
 # Creating the redshift to distance modulus and distance modulus to redshift functions.
 z_to_mod_matrix = data.frame(redshift = redshift, distance_modulus = cosdistDistMod(redshift, OmegaM=0.25, OmegaL=0.75, H0=100)+k_corrections)
 z_to_dmod = approxfun(z_to_mod_matrix[,1], z_to_mod_matrix[,2])
 dmod_to_z = approxfun(z_to_mod_matrix[,2], z_to_mod_matrix[,1])
 
-data(LFswml) # reading in the LF as given in the FoF package. (exclusive for GAMA)
+data(FoF::LFswml) # reading in the LF as given in the FoF package. (exclusive for GAMA)
 cut=-14
 tempLFswml = LFswml[LFswml[,2]< cut,c(2,3)]
 tempLFswml = cbind(tempLFswml,2*tempLFswml[,2]*(1/sqrt(LFswml[LFswml[,2]< cut,4])))
@@ -99,14 +103,17 @@ RunningDensity_z = approxfun(distfunc_D2z(temp$x), GalRanCounts*tempint/RunningV
 gama = fread('GAMA_galaxies.dat')
 gama[,'AB_r'] = gama[,Rpetro] - z_to_dmod(gama[,Z])
 gama = as.data.frame(gama)
+column_names <- colnames(gama)
+gama_ids = gama['UberID']
+data_column_names <- column_names[-1]
 #I'm just assuming 100% completeness and I should have a look at the way Aaron does the completeness stuff.
 optuse=c(0.06, 18, 0, -0.02, 0.63, 9.0000, 1.5000, 12.0000)
-data(circsamp)
-cat=FoFempint(
+data(FoF::circsamp)
+cat=FoF::FoFempint(
   data=gama, bgal=optuse[1], rgal=optuse[2], Eb=optuse[3], Er=optuse[4], 
-  coscale=T, NNscale=3, groupcalc=T, precalc=F, halocheck=F, apmaglim=19.65, colnames=colnames(gama), 
+  coscale=T, NNscale=3, groupcalc=T, precalc=F, halocheck=F, apmaglim=19.65, colnames=data_column_names, 
   denfunc=LFswmlfunc, intfunc=RunningDensity_z, intLumfunc=LFswmlintfuncLum, 
-  useorigind=F,dust=0,scalemass=1,scaleflux=1,extra=F,
+  useorigind=T, realIDs = T, dust=0,scalemass=1,scaleflux=1,extra=F,
   MagDenScale=optuse[5],deltacontrast=optuse[6],deltarad=optuse[7],deltar=optuse[8],
   circsamp=circsamp,Mmax=1e15, zvDmod = z_to_dmod, Dmodvz = dmod_to_z,
   left=129, right=141, top = 3, bottom = -2)
