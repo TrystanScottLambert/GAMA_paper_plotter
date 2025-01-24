@@ -32,14 +32,6 @@ def main():
     df = df[(df['Z'] > 0.01) & (df['Z'] < 1)] # velocity range.
     df['mag_r'] = convert_jy_to_abmag(df['flux_rt'])
 
-    # testing CATAIDs are unique.
-    val = len(df['CATAID']) - len(np.unique(df['CATAID']))
-    print('catatest val: ', len(df['CATAID']))
-    if val ==0:
-        print('No repeating IDs')
-    else:
-        print('REPEATING!!!')
-
     df = cut_region(df, g_09_footprint)  # we are only looking at g09 for now.
     df = df[['UberID', 'RAcen', 'Deccen', 'Z', 'mag_r']]
     df.rename(columns={'RAcen':"RA", 'Deccen': 'DEC', 'z':'Z', 'mag_r':'Rpetro'}, inplace=True)

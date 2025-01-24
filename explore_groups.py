@@ -11,6 +11,7 @@ from astropy import units as u
 from astropy.cosmology import FlatLambdaCDM
 
 from Plotting_Galaxies.plot_gama_regions import RegionScatterPlot
+from utils import cut_region, g_09_footprint
 
 
 def quick_distribution(data_frame: pd.DataFrame, col_name: str, bins: int = 100, **kwargs) -> None:
@@ -36,33 +37,6 @@ def add_xyz(data_frame: pd.DataFrame, ra_col: str, dec_col: str, z_col: str) -> 
     data_frame['z'] = c.cartesian.z.value
     return data_frame
 
-import numpy as np
-
-def calculate_velocity_dispersion(Z, sigerr):
-    # Sort velocities and compute vels
-    vels = np.sort(Z * 299792.458) / (1 + np.median(Z))
-    N = len(vels)
-    
-    # Compute gaps
-    gaps = vels[1:N] - vels[0:(N - 1)]
-    
-    # Compute weights
-    i = np.arange(1, N)  # Equivalent to 1:(N - 1) in R
-    weights = i * (N - i)
-    
-    # Compute siggap
-    siggap = np.sum(gaps * weights) * np.sqrt(np.pi) / (N * (N - 1))
-    
-    # Compute raw velocity dispersion
-    VelDispRaw = np.sqrt((N * siggap**2) / (N - 1))
-    
-    # Corrected velocity dispersion
-    VelDisp = np.sqrt(max(0, VelDispRaw**2 - sigerr**2))
-    
-    # Velocity error
-    VelErr = sigerr
-    
-    return VelDisp, VelErr
 
 if __name__ == '__main__':
     gal_ids, group_ids = np.loadtxt('galaxy_linking_table.csv', delimiter=',', unpack=True, skiprows=1)
@@ -75,19 +49,22 @@ if __name__ == '__main__':
     df = pd.read_csv(infile)
 
     add_xyz(df, 'IterCenRA', 'IterCenDEC', 'MedianZ')
-    df_no_disp = df[(df['VelDisp'] == 0)]
-    plt.scatter(df_no_disp['BCGRA'], df_no_disp['BCGDEC'])
 
-    plt.xlabel('RA')
-    plt.ylabel('DEC')
 
-    #scatter = RegionScatterPlot(df['IterCenRA'], df['MedianZ'], 1, s=np.log10(df['Mult'])*10, alpha=0.5, facecolor='none', edgecolors='k')
-    #scatter.plot_border(color='k', lw=3)
-    #scatter.plot_grid(color='r', alpha=0.5)
+    scatter = RegionScatterPlot(df['IterCenRA'], df['MedianZ'], 1, s=np.log10(df['Mult'])*10, alpha=0.5, facecolor='none', edgecolors='k')
+    scatter.plot_border(color='k', lw=3)
+    scatter.plot_grid(color='r', alpha=0.1)
+    plt.savefig('current_groups.png')
 
-    plt.show()
+    # Read in the GAMA thing. 
+    df_aaron = pd.read_csv('GAMA_groups_aaron.csv')
+    df_aaron_g09 = cut_region(df_aaron, g_09_footprint, ra_label='IterCenRA')
+    scatter = RegionScatterPlot(df_aaron_g09['IterCenRA'], df_aaron_g09['IterCenZ'], s=np.log10(df_aaron_g09['Nfof'])*10, alpha=0.5)
+    scatter.plot_border(color='k', lw=3)
+    scatter.plot_grid(color='r', alpha=0.1)
+    plt.savefig('aaron_groups.png')
 
-    THREE_D_PLOT = True
+    THREE_D_PLOT = False
     if THREE_D_PLOT:
         plotter = pv.Plotter()
 

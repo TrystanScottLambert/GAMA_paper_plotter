@@ -28,9 +28,9 @@ g_12_footprint = Region(ra_limits=(174.0, 186.0), dec_limits=(-3, 2))
 g_15_footprint = Region(ra_limits=(211.5, 223.5), dec_limits=(-2, 3))
 g_23_footprint = Region(ra_limits=(339.0, 351.0), dec_limits=(-35, 30))
 
-def cut_region(data: pd.DataFrame, region: Region) -> pd.DataFrame:
+def cut_region(data: pd.DataFrame, region: Region, ra_label: str = 'RAcen') -> pd.DataFrame:
     """
     Cuts the gama regions out based on the lower_ra an upper_ra. These are set from the
     GAMA website: (https://www.gama-survey.org/dr4/)
     """
-    return data[(data["RAcen"] > region.ra_lower) & (data["RAcen"] < region.ra_upper)]
+    return data[(data[ra_label] > region.ra_lower) & (data[ra_label] < region.ra_upper)]

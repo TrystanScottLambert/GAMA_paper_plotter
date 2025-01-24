@@ -1,0 +1,1 @@
+SELECT UberID,CATAID,RAcen,Deccen,flux_rt, flux_err_rt, Z FROM gkvScienceCatv02 WHERE NQ>2 AND SC>6 AND duplicate=0 AND mask=0 AND starmask=0 AND Z>0.003 AND Z
