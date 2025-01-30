@@ -39,13 +39,13 @@ def add_xyz(data_frame: pd.DataFrame, ra_col: str, dec_col: str, z_col: str) -> 
 
 
 if __name__ == '__main__':
-    gal_ids, group_ids = np.loadtxt('galaxy_linking_table.csv', delimiter=',', unpack=True, skiprows=1)
+    gal_ids, group_ids = np.loadtxt('g09_galaxy_linking_table.csv', delimiter=',', unpack=True, skiprows=1)
 
-    df_galaxies = pd.read_csv('GAMA_galaxies.dat', sep='\s+')
+    df_galaxies = pd.read_csv('gama_galaxy_catalogs/g09_galaxies.dat', sep='\s+')
     add_xyz(df_galaxies, 'RA', 'DEC', 'Z')
     df_group_galaxies = df_galaxies.iloc[gal_ids - 1]
 
-    infile = 'group_catalog.csv'
+    infile = 'g09_group_catalog.csv'
     df = pd.read_csv(infile)
 
     add_xyz(df, 'IterCenRA', 'IterCenDEC', 'MedianZ')

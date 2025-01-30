@@ -7,3 +7,5 @@ R.*
 *.png
 .RData
 .Rhistory
+*.txt
+*.png
