@@ -14,7 +14,7 @@ set.seed(2)
 xseq = seq(0, 1, by = 1e-4)
 kcorrvec = {}
 for(i in 1:length(xseq)){
-    kcorrvec = c(kcorrvec, KEcorr(xseq[i])[2])
+    kcorrvec = c(kcorrvec, FoF::KEcorr(xseq[i])[2])
 }
 
 zvDmod737mat = cbind(xseq, cosdistDistMod(xseq, OmegaM = 0.30, OmegaL = 0.70, H0 = 100) + kcorrvec)
@@ -42,17 +42,19 @@ LFswmlintfuncLum = function(x){
 N = 1e4
 #RanCat = fread('/scratch/pawsey0119/mbravo/DEVILS_data/DEVILS_D10_RandomCat_240212_v0.2.csv')
 # Commented out because fread would throw an error in Setonix (???)
-RanCat = as.data.table(read.csv('/scratch/pawsey0119/mbravo/DEVILS_data/DEVILS_D10_RandomCat_240212_v0.2.csv'))
-D02area = skyarea(c(34.000, 37.050), c(-5.200, -4.200))
-D03area = skyarea(c(52.263, 53.963), c(-28.500, -27.500))
-D10area = skyarea(c(149.380, 150.700), c(1.650, 2.790))
-DEVILSarea = sum(D02area[2], D03area[2], D10area[2])
+random_catalog_factor = 400 # this is how many more times the random catalog is than the base cat.
+RanCat = as.data.table(read.csv('gama_g09_randoms.txt'))
+G09area = skyarea(c(129,141), c(-2,3))
+G12area = skyarea(c(174,186), c(-3,2))
+G15area = skyarea(c(211.5,223.5), c(-2,3))
+G23area = skyarea(c(339, 351), c(-35, -30))
+GAMAarea = sum(G09area[2], G12area[2], G15area[2], G23area[2])
 
 distfunc_z2D = cosmapfunc('z', 'CoDist', H0 = 100, OmegaM = 0.30, OmegaL = 0.70, zrange = c(0, 3), step = 'a', res = N)
 distfunc_D2z = cosmapfunc('CoDist', 'z', H0 = 100, OmegaM = 0.30, OmegaL = 0.70, zrange = c(0, 3), step = 'a', res = N)
-temp = distfunc_z2D(RanCat[, zBest])
+temp = distfunc_z2D(RanCat[, z])
 RanCat[, 'CoDist'] = temp
-GalRanCounts = dim(RanCat)[1] / 1024
+GalRanCounts = dim(RanCat)[1] / random_catalog_factor
 
 bin = 40
 temp = density(RanCat[, CoDist], bw = bin / sqrt(12), from = 0, to = 2000, n = N, kern = 'rect')
@@ -65,12 +67,12 @@ for(colim in seq(0, 2000, len = N)){
 
 RunningVolume = (4 / 3) * pi * (seq(0, 2000, len = N) + bin / 2)^3
 RunningVolume = RunningVolume - ((4 / 3) * pi * (seq(0, 2000, len = N) - bin / 2)^3)
-RunningVolume = D10area * RunningVolume
+RunningVolume = G09area[2] * RunningVolume
 RunningDensity_D = approxfun(temp$x, GalRanCounts * tempint / RunningVolume, rule = 2)
 RunningDensity_z = approxfun(distfunc_D2z(temp$x), GalRanCounts * tempint / RunningVolume, rule = 2)
 
-Ylim = 20.68 # 90th-percent completeness level for DEVILS D10
-CalCat = as.data.table(read.csv('/scratch/pawsey0119/mbravo/LC_runs/DEVILS_CalCat_241002.csv'))
+Rlim = 19.65 # 90th-percent completeness level for DEVILS D10
+CalCat = as.data.table(read.csv('.csv'))
 # CalCat is a catalogue that combines the 32 lightcones I made for the DEVILS calibration (abundance-matched to DEVILS)
 colnames(CalCat)[14] = 'CATAID'
 colnames(CalCat)[15] = 'GroupID'
