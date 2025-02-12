@@ -9,3 +9,4 @@ R.*
 .Rhistory
 *.txt
 *.png
+*.parquet

@@ -64,7 +64,7 @@ if __name__ == '__main__':
     scatter.plot_grid(color='r', alpha=0.1)
     plt.savefig('aaron_groups.png')
 
-    THREE_D_PLOT = False
+    THREE_D_PLOT = True
     if THREE_D_PLOT:
         plotter = pv.Plotter()
 

@@ -1,0 +1,29 @@
+Cosmology:
+  H0: 67.51
+  Om0: 0.3
+
+Catalogue_Details:
+  area: "dont know"
+  mag_filter: "total_ap_dust_r_VST"
+  mag_cut: 19.65
+  redshift_cut: 0.2
+  version: "0.1.0"
+
+Properties_To_Read_In:
+  groups: [id_group_sky, ra, dec, zobs, zcos, subvolume, tile, id_halo_sam, flag, snapshot]
+  galaxies: [ra, dec, zobs, zcos, id_galaxy_sky, sfr_burst, sfr_disk, mstars_bulge, mstars_disk, rstar_bulge_apparent, rstar_disk_apparent, id_group_sky, dc, mvir_hosthalo, type, tile, subvolume, id_halo_sam, snapshot, inclination, pa, mstars_disk, mstars_bulge, mvir_hosthalo,mvir_subhalo, cnfw_subhalo, rstar_disk_apparent, rstar_bulge_apparent, rstar_disk_intrinsic]
+
+Properties_To_Write:
+  groups: [id_group_sky, ra, dec, zobs, zcos,  flag]
+  galaxies: [id_galaxy_sky, ra, dec, zobs, zcos, inclination, pa, mstars_disk, mstars_bulge, mvir_hosthalo, mvir_subhalo, cnfw_subhalo, rstar_disk_apparent, rstar_bulge_apparent, rstar_disk_intrinsic, id_group_sky]
+
+SED_fields:
+  SED/ap_dust: [total]
+  SED/ab_dust: [total]
+
+Lightcone_Directory: "/scratch/pawsey0119/clagos/Stingray/medi-SURFS/PSO_space4_L24HBT_SMFz0SMFz1/gama/"
+Sub_Directory: "split/"
+SED_file: "Sting-SED-eagle-rr14"
+Lightcone_file: 'mocksky'
+Sub_Volumes: 64
+Outfile_Prefix: 'gama'
