@@ -26,7 +26,7 @@ class TestRenameFunctions(unittest.TestCase):
                     6292300000001,
                     6292300000001,
                 ],
-                "id_galaxy sky": [101, 102, 103, 104, 105, 106],
+                "id_galaxy_sky": [101, 102, 103, 104, 105, 106],
             }
         )
 
@@ -50,8 +50,10 @@ class TestRenameFunctions(unittest.TestCase):
         """
         df_test = pd.read_parquet(self.buffer)
         df_transformed = rename_ids_col_names(df_test)
-        self.assertIn("GroupID", df_transformed.columns)
-        self.assertIn("CATAID", df_transformed.columns)
+        new_names = df_transformed.columns.to_list()
+        correct = ["GroupID", "CATAID"]
+        for cor, new in zip(correct, new_names):
+            self.assertEqual(cor, new)
 
 
 if __name__ == "__main__":

@@ -32,8 +32,8 @@ def rename_ids_col_names(data_frame: pd.DataFrame) -> pd.DataFrame:
     Renames the data_frame columns for galaxy ids and group ids to keep consitent with the FoFR
     naming conventions which FoFempint looks for when comparing to mock catalogs.
     """
-    data_frame.rename(columns={"id_group_sky": "GroupID", "id_galaxy_sky": "CATAID"})
-    return data_frame
+    df = data_frame.rename(columns={"id_group_sky": "GroupID", "id_galaxy_sky": "CATAID"})
+    return df
 
 
 if __name__ == "__main__":
