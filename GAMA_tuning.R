@@ -4,6 +4,7 @@ registerDoParallel(cores = 16)
 library(data.table)
 library(FoF)
 library(celestial)
+library(arrow)
 library(Highlander)
 
 t0 <- proc.time()
@@ -73,11 +74,11 @@ RunningDensity_D <- approxfun(temp$x, GalRanCounts * tempint / RunningVolume, ru
 RunningDensity_z <- approxfun(distfunc_D2z(temp$x), GalRanCounts * tempint / RunningVolume, rule = 2)
 
 r_lim <- 19.65 # new GAMA completeness
-calibration_cat <- as.data.table(read.csv("gama_mock_groups.csv"))
+calibration_cat <- as.data.table(arrow::read_parquet("mocks/gama_mock_data/gama_gals.parquet"))
 # calibration_cat is the catalog from Shark V2 for gama.
 
-colnames(calibration_cat)[14] <- "CATAID"
-colnames(calibration_cat)[15] <- "GroupID"
+colnames(calibration_cat)[1] <- "CATAID"
+colnames(calibration_cat)[16] <- "GroupID" # FoFempint expects this for mock comparison.
 calibration_cat <- calibration_cat[r_VST_ap_dust_total_magcorr < r_lim, ]
 calibration_cat <- calibration_cat[completeness_selected == 1, ]
 optB24 <- c(0.0373862, 38.4537, -0.121208, -0.462961, 3.39613, 8.08942, 3.34771)
@@ -102,7 +103,7 @@ optimFoFfunc <- function(par, data) {
     # In its current implementation, FoFempint treats any inputs a as a single field for the FoF stage, meaning that
     # memory and computation requirements go as O(N^2). It proved impossible to run the FoF in all 32 lightcones at once
     # even on the high memory nodes in Setonix, and the DEVILS fields are to small to converge to a single set of
-    # parameters if I optimise each lightcone separately. I had to modify FoFemptint a bit to output not only the FoM
+    # parameters if I optimise each lightcone separately. I had to modify FoFempint a bit to output not only the FoM
     # but also the numerator and denominator values of eqs. 3-4 from R11, which I can then add use to manually calculate
     # the final FoM
     FoFout <- foreach(LC = 1:32) %dopar% {
