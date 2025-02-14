@@ -13,7 +13,7 @@ set.seed(2)
 # This is here only because FoFempint expects this as input, 
 # eventually we should rework the FoFempint code
 # so that it is not longer the case.
-xseq <- seq(0, 1, by = 1e-4)
+xseq <- seq(0, 1.4, by = 1e-4)
 kcorrvec <- {}
 for (i in 1:length(xseq)) {
     kcorrvec <- c(kcorrvec, FoF::KEcorr(xseq[i])[2])
@@ -46,17 +46,18 @@ N <- 1e4
 # Commented out because fread would throw an error in Setonix (???)
 random_catalog_factor <- 400 # this is how many more times the random catalog is than the base cat.
 RanCat <- as.data.table(read.csv("gama_g09_randoms.txt"))
+G02area <- skyarea(c(30.2, 38.8), c(-10.25, -3.72))
 G09area <- skyarea(c(129, 141), c(-2, 3))
 G12area <- skyarea(c(174, 186), c(-3, 2))
 G15area <- skyarea(c(211.5, 223.5), c(-2, 3))
 G23area <- skyarea(c(339, 351), c(-35, -30))
-GAMAarea <- sum(G09area[2], G12area[2], G15area[2], G23area[2])
+GAMAarea <- sum(G09area[2], G12area[2], G15area[2], G23area[2], G02area[2])
 
 distfunc_z2D <- cosmapfunc("z", "CoDist", H0 = 100, OmegaM = 0.30, OmegaL = 0.70, zrange = c(0, 3), step = "a", res = N)
 distfunc_D2z <- cosmapfunc("CoDist", "z", H0 = 100, OmegaM = 0.30, OmegaL = 0.70, zrange = c(0, 3), step = "a", res = N)
 temp <- distfunc_z2D(RanCat[, z])
 RanCat[, "CoDist"] <- temp
-GalRanCounts <- dim(RanCat)[1] / random_catalog_factor
+GalRanCounts <- (dim(RanCat)[1] / random_catalog_factor) * 5 # five here is to address that we are doing five fields. TODO: make randoms cat that combines all gama-fields
 
 bin <- 40
 temp <- density(RanCat[, CoDist], bw = bin / sqrt(12), from = 0, to = 2000, n = N, kern = "rect")
@@ -74,24 +75,20 @@ RunningDensity_D <- approxfun(temp$x, GalRanCounts * tempint / RunningVolume, ru
 RunningDensity_z <- approxfun(distfunc_D2z(temp$x), GalRanCounts * tempint / RunningVolume, rule = 2)
 
 r_lim <- 19.65 # new GAMA completeness
-calibration_cat <- as.data.table(arrow::read_parquet("mocks/gama_mock_data/gama_gals.parquet"))
-# calibration_cat is the catalog from Shark V2 for gama.
+calibration_cat <- as.data.table(arrow::read_parquet("mocks/gama_gals_for_R.parquet"))
+calibration_cat <- calibration_cat[total_ap_dust_r_VST < r_lim, ]
+#calibration_cat <- calibration_cat[completeness_selected == 1, ]
 
-colnames(calibration_cat)[1] <- "CATAID"
-colnames(calibration_cat)[16] <- "GroupID" # FoFempint expects this for mock comparison.
-calibration_cat <- calibration_cat[r_VST_ap_dust_total_magcorr < r_lim, ]
-calibration_cat <- calibration_cat[completeness_selected == 1, ]
-optB24 <- c(0.0373862, 38.4537, -0.121208, -0.462961, 3.39613, 8.08942, 3.34771)
+opt_param_init_guess <- c(0.0373862, 38.4537, -0.121208, -0.462961, 3.39613, 8.08942, 3.34771)
 data(circsamp)
 
-Dleft <- c(34.000, 52.263, 149.380)
-Dright <- c(37.050, 53.963, 150.700)
-Dbottom <- c(-5.200, -28.500, 1.650)
-Dtop <- c(-4.200, -27.500, 2.790)
+Dleft <- c(30.2, 129.0, 174.0, 211.5, 399.0)
+Dright <- c(38.8, 141.0, 186.0, 223.5, 351.0)
+Dbottom <- c(-10.25, -2, -3, -2, -35)
+Dtop <- c(-3.72, 3, 2, 3, -30)
 
 optimFoFfunc <- function(par, data) {
     cat <- data$maincat
-
     bgal <- par[1]
     rgal <- par[2]
     Eb <- par[3]
@@ -106,11 +103,13 @@ optimFoFfunc <- function(par, data) {
     # parameters if I optimise each lightcone separately. I had to modify FoFempint a bit to output not only the FoM
     # but also the numerator and denominator values of eqs. 3-4 from R11, which I can then add use to manually calculate
     # the final FoM
-    FoFout <- foreach(LC = 1:32) %dopar% {
-        cat_subset <- as.data.frame(cat[LCno == LC, ])
+    number_of_lightcones = 1
+    FoFout <- foreach(LC = 1:number_of_lightcones) %dopar% {
+        #cat_subset <- as.data.frame(cat[LCno == LC, ]) # we need to do this properly once we have all the lightcone data. But that involves patching them all together.
+        cat_subset <- as.data.frame(cat) # for now we just pass the whole thing which is 1 lightcone in this case. TODO: add more lightcones.
 
-        LCstr <- formatC(LC, width = 2, format = "d", flag = "0")
-        precalc_file <- paste("/scratch/pawsey0119/mbravo/LC_runs/DEVILS_", LCstr, "/PreCalc_p1090.rda", sep = "")
+        #LCstr <- formatC(LC, width = 2, format = "d", flag = "0")
+        precalc_file <- paste("./test.rda")
 
         # Pre-calculating the distances speeds things up significantly, so it's worth doing a first short run to
         # generate them (also to test that things work) and then make the calibration run proper.
@@ -118,10 +117,10 @@ optimFoFfunc <- function(par, data) {
             load(precalc_file)
         } else {
             print("Couldn't find precalculated distances, generating now")
-            PreCalc_p1090 <- FoFempint(
+            pre_calc_distances <- FoFempint(
                 data = cat_subset, bgal = bgal, rgal = rgal, Eb = Eb, Er = Er, coscale = T,
-                NNscale = 20, groupcalc = F, precalc = F, halocheck = T, apmaglim = Ylim,
-                colnames = c("RA", "Dec", "zobs", "Y_VISTA_ap_dust_total"), denfunc = LFswmlfunc,
+                NNscale = 20, groupcalc = F, precalc = F, halocheck = T, apmaglim = r_lim,
+                colnames = c("ra", "dec", "zobs", "total_ap_dust_r_VST"), denfunc = LFswmlfunc,
                 intfunc = RunningDensity_z, intLumfunc = LFswmlintfuncLum, useorigind = T,
                 dust = 0, scalemass = 1, scaleflux = 1, localcomp = 0.9,
                 realIDs = cat_subset[, "CATAID"], extra = F, sigerr = 0, MagDenScale = 0,
@@ -130,7 +129,7 @@ optimFoFfunc <- function(par, data) {
                 left = Dleft, right = Dright, bottom = Dbottom, top = Dtop, OmegaL = 0.7,
                 OmegaM = 0.3
             )
-            save(PreCalc_p1090, file = precalc_file)
+            save(pre_calc_distances, file = precalc_file)
             print("Precalculated distances saved to file")
         }
 
@@ -140,14 +139,14 @@ optimFoFfunc <- function(par, data) {
             {
                 catGroup <- FoFempint(
                     data = cat_subset, bgal = bgal, rgal = rgal, Eb = Eb, Er = Er, coscale = T,
-                    NNscale = 20, groupcalc = F, precalc = T, halocheck = T, apmaglim = Ylim,
+                    NNscale = 20, groupcalc = F, precalc = T, halocheck = T, apmaglim = r_lim,
                     denfunc = LFswmlfunc, colnames = c(
-                        "RA", "Dec", "zobs",
-                        "Y_VISTA_ap_dust_total"
+                        "ra", "dec", "zobs",
+                        "total_ap_dust_r_VST"
                     ),
                     intfunc = RunningDensity_z, intLumfunc = LFswmlintfuncLum, useorigind = T,
-                    dust = 0, dists = PreCalc_p1090$dists, deltaden = PreCalc_p1090$deltaden,
-                    denexp = PreCalc_p1090$denexp, oblim = PreCalc_p1090$oblim, sigerr = 0,
+                    dust = 0, dists = pre_calc_distances$dists, deltaden = pre_calc_distances$deltaden,
+                    denexp = pre_calc_distances$denexp, oblim = pre_calc_distances$oblim, sigerr = 0,
                     scalemass = 1, scaleflux = 1, localcomp = 0.9, extra = F, MagDenScale = 0,
                     realIDs = cat_subset[, "CATAID"], deltacontrast = deltacontrast,
                     deltarad = deltarad, deltar = deltar, circsamp = circsamp, verbose = FALSE,
@@ -210,15 +209,15 @@ optimFoFfunc <- function(par, data) {
 }
 
 # This particular calibration is for all galaxies in the 10th-90th percentile redshift range for DEVILS D10.
-selectz_p1090 <- calibration_cat$zobs > 0.186 & calibration_cat$zobs < 0.842
-CalData_p1090 <- list(maincat = calibration_cat[selectz_p1090, ])
-# test = optimFoFfunc(par = optB24, data = CalData_p1090)
+selectz_gama <- calibration_cat$zobs > 0.01 & calibration_cat$zobs < 0.5
+cal_data_gama <- list(maincat = calibration_cat[selectz_gama, ])
+# test = optimFoFfunc(par = opt_param_init_guess, data = cal_data_gama)
 # print(test)
 
 # For the particular calibration set of lightcones I have, I can squeeze in this many interations is a bit less than the
 # walltime limit of the long queue in Setonix (96 hours) using one full node (128 cores, 230 GB memory)
-optDEVILS_p1090 <- Highlander(optB24,
-    Data = CalData_p1090, likefunc = optimFoFfunc, likefunctype = "CMA",
+opt_gama <- Highlander(opt_param_init_guess,
+    Data = cal_data_gama, likefunc = optimFoFfunc, likefunctype = "CMA",
     # optim_iters = 2, liketype = 'max', Niters = c(5,5), NfinalMCMC = 25,
     optim_iters = 2, liketype = "max", Niters = c(250, 250), NfinalMCMC = 2500,
     lower = c(0.005, 10, -0.5, -0.6, 0.04, 0.90, 1.00),
@@ -227,19 +226,19 @@ optDEVILS_p1090 <- Highlander(optB24,
 )
 
 # Printing the best parameters and FoM
-print(paste("Final FoM =", optDEVILS_p1090$LP / 100))
-print(paste("Final parameters = ", optDEVILS_p1090$parm[1], ", ", optDEVILS_p1090$parm[2], ", ",
-    optDEVILS_p1090$parm[3], ", ", optDEVILS_p1090$parm[4], ", ", optDEVILS_p1090$parm[5], ", ",
-    optDEVILS_p1090$parm[6], ", ", optDEVILS_p1090$parm[7],
+print(paste("Final FoM =", opt_gama$LP / 100))
+print(paste("Final parameters = ", opt_gama$parm[1], ", ", opt_gama$parm[2], ", ",
+    opt_gama$parm[3], ", ", opt_gama$parm[4], ", ", opt_gama$parm[5], ", ",
+    opt_gama$parm[6], ", ", opt_gama$parm[7],
     sep = ""
 ))
 
 # This is to be able to explore the posterior chain of the second MCMC to see how well-coverged the parameters are.
-fileout <- "/scratch/pawsey0119/mbravo/GF_runs/DEVILS_D10_HighlanderChain_p1090.rda"
-save(optDEVILS_p1090, file = fileout)
+fileout <- "./gama_HighlanderChain.rda"
+save(opt_gama, file = fileout)
 
-postmonitor <- cbind(optDEVILS_p1090$LD_last$Posterior1, optDEVILS_p1090$LD_last$Monitor)
-csvout <- "/scratch/pawsey0119/mbravo/GF_runs/DEVILS_D10_HighlanderChain_p1090.csv"
+postmonitor <- cbind(opt_gama$LD_last$Posterior1, opt_gama$LD_last$Monitor)
+csvout <- "./gama_HighlanderChain.csv"
 write.csv(postmonitor, csvout, row.names = FALSE)
 
 t1 <- proc.time()
