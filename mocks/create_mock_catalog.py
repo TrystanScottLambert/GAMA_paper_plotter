@@ -35,11 +35,17 @@ def rename_ids_col_names(data_frame: pd.DataFrame) -> pd.DataFrame:
     df_new = data_frame.rename(columns={"id_group_sky": "GroupID", "id_galaxy_sky": "CATAID"})
     return df_new
 
-
-if __name__ == "__main__":
-    INFILE = "gama_mock_data/gama_gals.parquet"
-    OUTFILE = "gama_gals_for_R.parquet"
-    df = pd.read_parquet(INFILE)
+def main():
+    """
+    Rename the ids and columns
+    """
+    infile = "gama_mock_data/gama_gals.parquet"
+    outfile = "gama_gals_for_R.parquet"
+    df = pd.read_parquet(infile)
     df = rename_groups(df)
     df = rename_ids_col_names(df)
-    df.to_parquet(OUTFILE, index=False)
+    df.to_parquet(outfile, index=False)
+
+
+if __name__ == "__main__":
+    main()

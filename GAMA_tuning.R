@@ -79,7 +79,7 @@ calibration_cat <- as.data.table(arrow::read_parquet("mocks/gama_gals_for_R.parq
 calibration_cat <- calibration_cat[total_ap_dust_r_VST < r_lim, ]
 #calibration_cat <- calibration_cat[completeness_selected == 1, ]
 
-opt_param_init_guess <- c(0.0373862, 38.4537, -0.121208, -0.462961, 3.39613, 8.08942, 3.34771)
+opt_param_init_guess <- c(0.05, 18, 0, 0, 0.8, 9.0000, 1.5000)
 data(circsamp)
 
 Dleft <- c(30.2, 129.0, 174.0, 211.5, 399.0)
@@ -109,7 +109,7 @@ optimFoFfunc <- function(par, data) {
         cat_subset <- as.data.frame(cat) # for now we just pass the whole thing which is 1 lightcone in this case. TODO: add more lightcones.
 
         #LCstr <- formatC(LC, width = 2, format = "d", flag = "0")
-        precalc_file <- paste("./test.rda")
+        precalc_file <- paste("./dist_precalc.rda")
 
         # Pre-calculating the distances speeds things up significantly, so it's worth doing a first short run to
         # generate them (also to test that things work) and then make the calibration run proper.
@@ -166,6 +166,7 @@ optimFoFfunc <- function(par, data) {
                 )
             },
             error = function(err) {
+                print(paste("Error in FoFempint:", err$message))
                 return(list(
                     mockfrac_num = 0, mockfrac_den = 0, foffrac_num = 0,
                     foffrac_den = 0, mockint_num = 0, mockint_den = 0,
@@ -221,10 +222,9 @@ opt_gama <- Highlander(opt_param_init_guess,
     # optim_iters = 2, liketype = 'max', Niters = c(5,5), NfinalMCMC = 25,
     optim_iters = 2, liketype = "max", Niters = c(250, 250), NfinalMCMC = 2500,
     lower = c(0.005, 10, -0.5, -0.6, 0.04, 0.90, 1.00),
-    upper = c(0.500, 100, 0.5, 0.4, 4.00, 36.0, 40.0),
+    upper = c(0.500, 50, 0.5, 0.4, 4.00, 36.0, 40.0),
     parm.names = c("bgal", "rgal", "Eb", "Er", "deltacontrast", "deltarad", "deltar")
 )
-
 # Printing the best parameters and FoM
 print(paste("Final FoM =", opt_gama$LP / 100))
 print(paste("Final parameters = ", opt_gama$parm[1], ", ", opt_gama$parm[2], ", ",

@@ -10,3 +10,4 @@ R.*
 *.txt
 *.png
 *.parquet
+*.rda
