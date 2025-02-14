@@ -88,6 +88,7 @@ Dbottom <- c(-10.25, -2, -3, -2, -35)
 Dtop <- c(-3.72, 3, 2, 3, -30)
 
 optimFoFfunc <- function(par, data) {
+    print('function called!')
     cat <- data$maincat
     bgal <- par[1]
     rgal <- par[2]
@@ -104,17 +105,23 @@ optimFoFfunc <- function(par, data) {
     # but also the numerator and denominator values of eqs. 3-4 from R11, which I can then add use to manually calculate
     # the final FoM
     number_of_lightcones = 1
+    print('going into the loop')
     FoFout <- foreach(LC = 1:number_of_lightcones) %dopar% {
+        print('This is LC: ', LC)
+        print('inside the loop')
         #cat_subset <- as.data.frame(cat[LCno == LC, ]) # we need to do this properly once we have all the lightcone data. But that involves patching them all together.
+        print('loading cat_subset')
         cat_subset <- as.data.frame(cat) # for now we just pass the whole thing which is 1 lightcone in this case. TODO: add more lightcones.
-
+        print('loaded cat_subset')
         #LCstr <- formatC(LC, width = 2, format = "d", flag = "0")
         precalc_file <- paste("./dist_precalc.rda")
-
+        
         # Pre-calculating the distances speeds things up significantly, so it's worth doing a first short run to
         # generate them (also to test that things work) and then make the calibration run proper.
         if (file.exists(precalc_file)) {
+            print('pre calc file exists, loading it now')
             load(precalc_file)
+            print('pre calc file loaded')
         } else {
             print("Couldn't find precalculated distances, generating now")
             pre_calc_distances <- FoFempint(
@@ -137,6 +144,8 @@ optimFoFfunc <- function(par, data) {
         # is necessary to properly handle those errors so that the optimisation doesn't crash.
         out <- tryCatch(
             {
+                print('in this dumb-fuck tryCatch')
+                print('running group finder')
                 catGroup <- FoFempint(
                     data = cat_subset, bgal = bgal, rgal = rgal, Eb = Eb, Er = Er, coscale = T,
                     NNscale = 20, groupcalc = F, precalc = T, halocheck = T, apmaglim = r_lim,
@@ -149,11 +158,11 @@ optimFoFfunc <- function(par, data) {
                     denexp = pre_calc_distances$denexp, oblim = pre_calc_distances$oblim, sigerr = 0,
                     scalemass = 1, scaleflux = 1, localcomp = 0.9, extra = F, MagDenScale = 0,
                     realIDs = cat_subset[, "CATAID"], deltacontrast = deltacontrast,
-                    deltarad = deltarad, deltar = deltar, circsamp = circsamp, verbose = FALSE,
+                    deltarad = deltarad, deltar = deltar, circsamp = circsamp, verbose = TRUE,
                     zvDmod = zvDmod737, Dmodvz = Dmodvz737, multcut = 5, left = Dleft,
                     right = Dright, bottom = Dbottom, top = Dtop, OmegaL = 0.7, OmegaM = 0.3
                 )
-
+                print('done running making lists')
                 list(
                     mockfrac_num = catGroup$summary["mockfrac_num"],
                     mockfrac_den = catGroup$summary["mockfrac_den"],
@@ -177,7 +186,7 @@ optimFoFfunc <- function(par, data) {
 
         out
     }
-
+    print('fuck me')
     # This is the calculation of the overall FoM from the values from each lightcone
     mockfrac_num <- NULL
     mockfrac_den <- NULL
@@ -187,8 +196,10 @@ optimFoFfunc <- function(par, data) {
     mockint_den <- NULL
     fofint_num <- NULL
     fofint_den <- NULL
-
+    
+    print('we are now here. Going into loop')
     for (o in FoFout) {
+        print('in this loop')
         mockfrac_num <- c(mockfrac_num, o[["mockfrac_num"]])
         mockfrac_den <- c(mockfrac_den, o[["mockfrac_den"]])
         foffrac_num <- c(foffrac_num, o[["foffrac_num"]])
@@ -198,7 +209,7 @@ optimFoFfunc <- function(par, data) {
         fofint_num <- c(fofint_num, o[["fofint_num"]])
         fofint_den <- c(fofint_den, o[["fofint_den"]])
     }
-
+    print('done with loop')
     FoM <- (sum(mockfrac_num) / sum(mockfrac_den)) * (sum(foffrac_num) / sum(foffrac_den))
     FoM <- FoM * (sum(mockint_num) / sum(mockint_den)) * (sum(fofint_num) / sum(fofint_den))
     if (is.na(FoM) || is.infinite(FoM)) {
@@ -243,3 +254,4 @@ write.csv(postmonitor, csvout, row.names = FALSE)
 
 t1 <- proc.time()
 print(t1 - t0)
+
