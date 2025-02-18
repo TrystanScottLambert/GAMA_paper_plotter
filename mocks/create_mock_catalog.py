@@ -44,7 +44,10 @@ def main():
     df = pd.read_parquet(infile)
     df = rename_groups(df)
     df = rename_ids_col_names(df)
+    df = df[df['total_ap_dust_r_VST'] < 19.65]
+    df = df[df['ra'] < 70] # gama g09 region.
     df.to_parquet(outfile, index=False)
+
 
 
 if __name__ == "__main__":
