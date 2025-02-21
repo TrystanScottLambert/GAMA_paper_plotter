@@ -45,11 +45,18 @@ if __name__ == '__main__':
     add_xyz(df_galaxies, 'RA', 'DEC', 'Z')
     df_group_galaxies = df_galaxies.iloc[gal_ids - 1]
 
+
     infile = 'g23_group_catalog.csv'
     df = pd.read_csv(infile)
-
     add_xyz(df, 'IterCenRA', 'IterCenDEC', 'MedianZ')
 
+
+    mock_gal_ids, mock_group_ids = np.loadtxt('testing_broken_tuning_linking_table.csv')
+    df_mock_galaxies = pd.read_parquet('mocks/gama_gals_for_R.parquet')
+    add_xyz(df_mock_galaxies, 'ra', 'dec', 'zobs')
+    df_mock_group_galaxies = df_mock_galaxies[mock_gal_ids -1]
+
+    
 
     scatter = RegionScatterPlot(df['IterCenRA'], df['MedianZ'], 1, s=np.log10(df['Mult'])*10, alpha=0.5, facecolor='none', edgecolors='k')
     scatter.plot_border(color='k', lw=3)
@@ -64,7 +71,7 @@ if __name__ == '__main__':
     scatter.plot_grid(color='r', alpha=0.1)
     plt.savefig('aaron_groups.png')
 
-    THREE_D_PLOT = True
+    THREE_D_PLOT = False
     if THREE_D_PLOT:
         plotter = pv.Plotter()
 

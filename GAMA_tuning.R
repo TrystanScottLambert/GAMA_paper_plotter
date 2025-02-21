@@ -83,7 +83,7 @@ calibration_cat <- as.data.table(arrow::read_parquet("mocks/gama_gals_for_R.parq
 calibration_cat <- calibration_cat[total_ap_dust_r_VST < r_lim, ]
 #calibration_cat <- calibration_cat[completeness_selected == 1, ]
 
-opt_param_init_guess <- c(0.05, 18, 0, 0, 0.8, 9.0000, 1.5000)
+opt_param_init_guess <- c(5, 18) #c(0.05, 18, 0, 0, 0.8, 9.0000, 1.5000)
 data(circsamp)
 
 Dleft <- c(30.2, 129.0, 174.0, 211.5, 399.0)
@@ -92,14 +92,15 @@ Dbottom <- c(-10.25, -2, -3, -2, -35)
 Dtop <- c(-3.72, 3, 2, 3, -30)
 
 optimFoFfunc <- function(par, data) {
+  message(cat(par))
   cat <- data$maincat
-  bgal <- par[1]
+  bgal <- par[1]/100
   rgal <- par[2]
-  Eb <- par[3]
-  Er <- par[4]
-  deltacontrast <- par[5]
-  deltarad <- par[6]
-  deltar <- par[7]
+  Eb <- 0 #par[3]
+  Er <- 0 #par[4]
+  deltacontrast <- 9 #par[5]
+  deltarad <- 1.5 #par[6]
+  deltar <- 12 #par[7]
   
   number_of_lightcones = 1
   FoFout <- foreach(LC = 1:number_of_lightcones) %do% { 
@@ -155,6 +156,7 @@ optimFoFfunc <- function(par, data) {
         fofint_den = catGroup$summary["fofint_den"]
       )
     }, error = function(err) {
+      print(paste("There was an error", err))
       return(list(
         mockfrac_num = 0, mockfrac_den = 0, foffrac_num = 0,
         foffrac_den = 0, mockint_num = 0, mockint_den = 0,
@@ -190,8 +192,8 @@ optimFoFfunc <- function(par, data) {
   if (is.na(FoM) || is.infinite(FoM)) {
     FoM <- 0
   }
-  
-  return(100 * FoM)
+  message('LP: ', 1000 * FoM)
+  return(1000 * FoM)
 }
 
 
@@ -208,9 +210,13 @@ opt_gama <- Highlander(opt_param_init_guess,
     Data = cal_data_gama, likefunc = optimFoFfunc, likefunctype = "CMA",
     # optim_iters = 2, liketype = 'max', Niters = c(5,5), NfinalMCMC = 25,
     optim_iters = 2, liketype = "max", Niters = c(250, 250), NfinalMCMC = 2500,
-    lower = c(0.04, 15, -0.5, -0.5, 0.04, 7, 1.00),
-    upper = c(0.06, 25, 0.5, 0.5, 1.2, 11, 2),
-    parm.names = c("bgal", "rgal", "Eb", "Er", "deltacontrast", "deltarad", "deltar")
+    lower = c(4, 15),
+    upper = c(6, 25),
+    parm.names = c("bgal", "rgal"),
+    #lower = c(0.04, 15, -0.5, -0.5, 0.04, 7, 1.00),
+    #upper = c(0.06, 25, 0.5, 0.5, 1.2, 11, 2),
+    #parm.names = c("bgal", "rgal", "Eb", "Er", "deltacontrast", "deltarad", "deltar"),
+    seed=666
 )
 # Printing the best parameters and FoM
 print(paste("Final FoM =", opt_gama$LP / 100))
