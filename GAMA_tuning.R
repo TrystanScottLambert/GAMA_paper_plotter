@@ -123,7 +123,7 @@ optimFoFfunc <- function(par, data) {
         realIDs = cat_subset$CATAID, extra = F, sigerr = 0, MagDenScale = 0,
         deltacontrast = deltacontrast, deltarad = deltarad, deltar = deltar,
         circsamp = circsamp, zvDmod = zvDmod737, Dmodvz = Dmodvz737, multcut = 5,
-        left = Dleft, right = Dright, bottom = Dbottom, top = Dtop, OmegaL = 0.7,
+        left = Dleft[2], right = Dright[2], bottom = Dbottom[2], top = Dtop[2], OmegaL = 0.7,
         OmegaM = 0.3
       )
       save(pre_calc_distances, file = precalc_file)
@@ -141,8 +141,8 @@ optimFoFfunc <- function(par, data) {
         scalemass = 1, scaleflux = 1, localcomp = 0.9, extra = F, MagDenScale = 0,
         realIDs = cat_subset$CATAID, deltacontrast = deltacontrast,
         deltarad = deltarad, deltar = deltar, circsamp = circsamp, verbose = FALSE,
-        zvDmod = zvDmod737, Dmodvz = Dmodvz737, multcut = 5, left = Dleft,
-        right = Dright, bottom = Dbottom, top = Dtop, OmegaL = 0.7, OmegaM = 0.3
+        zvDmod = zvDmod737, Dmodvz = Dmodvz737, multcut = 5, left = Dleft[2],
+        right = Dright[2], bottom = Dbottom[2], top = Dtop[2], OmegaL = 0.7, OmegaM = 0.3
       )
       
       list(
@@ -226,8 +226,8 @@ catBest <- FoFempint(
   scalemass = 1, scaleflux = 1, localcomp = 0.9, extra = F, MagDenScale = 0,
   realIDs = cat_subset_test$CATAID, deltacontrast = deltacontrast,
   deltarad = deltarad, deltar = deltar, circsamp = circsamp, verbose = FALSE,
-  zvDmod = zvDmod737, Dmodvz = Dmodvz737, multcut = 5, left = Dleft,
-  right = Dright, bottom = Dbottom, top = Dtop, OmegaL = 0.7, OmegaM = 0.3
+  zvDmod = zvDmod737, Dmodvz = Dmodvz737, multcut = 5, left = Dleft[2],
+  right = Dright[2], bottom = Dbottom[2], top = Dtop[2], OmegaL = 0.7, OmegaM = 0.3
 )
 
 write.csv(as.data.frame(catBest$grouptable), 'best_testing_group_catalog.csv', row.names=FALSE, quote=FALSE)
@@ -253,8 +253,8 @@ catDefault <- FoFempint(
   scalemass = 1, scaleflux = 1, localcomp = 0.9, extra = F, MagDenScale = 0,
   realIDs = cat_subset_test$CATAID, deltacontrast = deltacontrast,
   deltarad = deltarad, deltar = deltar, circsamp = circsamp, verbose = FALSE,
-  zvDmod = zvDmod737, Dmodvz = Dmodvz737, multcut = 5, left = Dleft,
-  right = Dright, bottom = Dbottom, top = Dtop, OmegaL = 0.7, OmegaM = 0.3
+  zvDmod = zvDmod737, Dmodvz = Dmodvz737, multcut = 5, left = Dleft[2],
+  right = Dright[2], bottom = Dbottom[2], top = Dtop[2], OmegaL = 0.7, OmegaM = 0.3
 )
 
 write.csv(as.data.frame(catBest$grouptable), 'default_testing_group_catalog.csv', row.names=FALSE, quote=FALSE)

@@ -56,8 +56,6 @@ if __name__ == '__main__':
     add_xyz(df_mock_galaxies, 'ra', 'dec', 'zobs')
     df_mock_group_galaxies = df_mock_galaxies[mock_gal_ids -1]
 
-    
-
     scatter = RegionScatterPlot(df['IterCenRA'], df['MedianZ'], 1, s=np.log10(df['Mult'])*10, alpha=0.5, facecolor='none', edgecolors='k')
     scatter.plot_border(color='k', lw=3)
     scatter.plot_grid(color='r', alpha=0.1)
