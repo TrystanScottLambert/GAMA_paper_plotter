@@ -42,7 +42,6 @@ if __name__ == '__main__':
     selected_isolated = len(np.where(mock_raw_gal_dist == 1)[0])
     number_apparent_isolated = selected_isolated + len(true_isolated_df)
 
-    
     number_weird_isolated = len(np.where(true_isolated_df['mvir_hosthalo'] > 10e12)[0])
     print('The percentage of galaxies identified as isolated is: ', number_apparent_isolated/len(mock_raw_df))
     print('The total number of truly isolated galaxies: ', len(true_isolated_df))
@@ -52,5 +51,3 @@ if __name__ == '__main__':
     plt.xlabel('log(host virial Mass [Msol])', fontsize=20)
     plt.ylabel('Counts', fontsize=20)
     plt.show()
-
-

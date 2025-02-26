@@ -11,7 +11,7 @@ Catalogue_Details:
 
 Properties_To_Read_In:
   groups: [id_group_sky, ra, dec, zobs, zcos, subvolume, tile, id_halo_sam, flag, snapshot]
-  galaxies: [ra, dec, zobs, zcos, id_galaxy_sky, sfr_burst, sfr_disk, mstars_bulge, mstars_disk, rstar_bulge_apparent, rstar_disk_apparent, id_group_sky, dc, mvir_hosthalo, type, tile, subvolume, id_halo_sam, snapshot, inclination, pa, mstars_disk, mstars_bulge, mvir_hosthalo,mvir_subhalo, cnfw_subhalo, rstar_disk_apparent, rstar_bulge_apparent, rstar_disk_intrinsic]
+  galaxies: [ra, dec, zobs, zcos, id_galaxy_sky, sfr_burst, sfr_disk, mstars_bulge, mstars_disk, rstar_bulge_apparent, rstar_disk_apparent, tile, snapshot, subvolume, id_halo_sam, id_group_sky, dc, mvir_hosthalo, type, tile, subvolume, id_halo_sam, snapshot, inclination, pa, mstars_disk, mstars_bulge, mvir_hosthalo,mvir_subhalo, cnfw_subhalo, rstar_disk_apparent, rstar_bulge_apparent, rstar_disk_intrinsic]
 
 Properties_To_Write:
   groups: [id_group_sky, ra, dec, zobs, zcos,  flag]
