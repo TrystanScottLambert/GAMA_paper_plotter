@@ -198,9 +198,68 @@ optimFoFfunc <- function(par, data) {
 
 
 
-# This particular calibration is for all galaxies in the 10th-90th percentile redshift range for DEVILS D10.
 selectz_gama <- calibration_cat$zobs > 0.01 & calibration_cat$zobs < 0.5
 cal_data_gama <- list(maincat = calibration_cat[selectz_gama, ])
+cat_subset_test = cal_data_gama$maincat
+column_data_names = intersect(c("ra", "dec", "zobs", "total_ap_dust_r_VST"), colnames(cat_subset_test))
+
+
+# Testing the FoFempint
+# Testing the "best params"
+
+bgal <- 4.92/100
+rgal <- 19.716
+Eb <- 0 #par[3]
+Er <- 0 #par[4]
+deltacontrast <- 9 #par[5]
+deltarad <- 1.5 #par[6]
+deltar <- 12 #par[7]
+
+message("Here we go. Run this shit.")
+catBest <- FoFempint(
+  data = as.data.frame(cat_subset_test), bgal = bgal, rgal = rgal, Eb = Eb, Er = Er, coscale = T,
+  NNscale = 20, groupcalc = F, precalc = F, halocheck = T, apmaglim = r_lim,
+  denfunc = LFswmlfunc, colnames = column_data_names,
+  intfunc = RunningDensity_z, intLumfunc = LFswmlintfuncLum, useorigind = T,
+  dust = 0, dists = pre_calc_distances$dists, deltaden = pre_calc_distances$deltaden,
+  denexp = pre_calc_distances$denexp, oblim = pre_calc_distances$oblim, sigerr = 0,
+  scalemass = 1, scaleflux = 1, localcomp = 0.9, extra = F, MagDenScale = 0,
+  realIDs = cat_subset_test$CATAID, deltacontrast = deltacontrast,
+  deltarad = deltarad, deltar = deltar, circsamp = circsamp, verbose = FALSE,
+  zvDmod = zvDmod737, Dmodvz = Dmodvz737, multcut = 5, left = Dleft,
+  right = Dright, bottom = Dbottom, top = Dtop, OmegaL = 0.7, OmegaM = 0.3
+)
+
+write.csv(as.data.frame(catBest$grouptable), 'best_testing_group_catalog.csv', row.names=FALSE, quote=FALSE)
+write.csv(as.data.frame(catBest$grefs), 'best_testing_galaxy_linking_table.csv', row.names=FALSE, quote=FALSE)
+
+# Testing the "default params"
+bgal <- opt_param_init_guess[1]/100
+rgal <- opt_param_init_guess[2]
+Eb <- 0 #par[3]
+Er <- 0 #par[4]
+deltacontrast <- 9 #par[5]
+deltarad <- 1.5 #par[6]
+deltar <- 12 #par[7]
+
+message("Now run this shit.")
+catDefault <- FoFempint(
+  data = as.data.frame(cat_subset_test), bgal = bgal, rgal = rgal, Eb = Eb, Er = Er, coscale = T,
+  NNscale = 20, groupcalc = F, precalc = F, halocheck = T, apmaglim = r_lim,
+  denfunc = LFswmlfunc, colnames = column_data_names,
+  intfunc = RunningDensity_z, intLumfunc = LFswmlintfuncLum, useorigind = T,
+  dust = 0, dists = pre_calc_distances$dists, deltaden = pre_calc_distances$deltaden,
+  denexp = pre_calc_distances$denexp, oblim = pre_calc_distances$oblim, sigerr = 0,
+  scalemass = 1, scaleflux = 1, localcomp = 0.9, extra = F, MagDenScale = 0,
+  realIDs = cat_subset_test$CATAID, deltacontrast = deltacontrast,
+  deltarad = deltarad, deltar = deltar, circsamp = circsamp, verbose = FALSE,
+  zvDmod = zvDmod737, Dmodvz = Dmodvz737, multcut = 5, left = Dleft,
+  right = Dright, bottom = Dbottom, top = Dtop, OmegaL = 0.7, OmegaM = 0.3
+)
+
+write.csv(as.data.frame(catBest$grouptable), 'default_testing_group_catalog.csv', row.names=FALSE, quote=FALSE)
+write.csv(as.data.frame(catBest$grefs), 'default_testing_galaxy_linking_table.csv', row.names=FALSE, quote=FALSE)
+message("We are done. Kill program")
 
 #optimFoFfunc(c(0.005, 10, -0.5, -0.6, 0.04, 0.90, 1.00), cal_data_gama)
 
