@@ -15,7 +15,7 @@ Properties_To_Read_In:
 
 Properties_To_Write:
   groups: [id_group_sky, ra, dec, zobs, zcos,  flag]
-  galaxies: [id_galaxy_sky, ra, dec, zobs, zcos, inclination, pa, mstars_disk, mstars_bulge, mvir_hosthalo, mvir_subhalo, cnfw_subhalo, rstar_disk_apparent, rstar_bulge_apparent, rstar_disk_intrinsic, id_group_sky]
+  galaxies: [id_galaxy_sky, ra, dec, zobs, zcos, inclination, pa, mstars_disk, mstars_bulge, mvir_hosthalo, mvir_subhalo, cnfw_subhalo, rstar_disk_apparent, rstar_bulge_apparent, rstar_disk_intrinsic, tile, snapshot, subvolume, id_halo_sam, type, id_group_sky]
 
 SED_fields:
   SED/ap_dust: [total]
