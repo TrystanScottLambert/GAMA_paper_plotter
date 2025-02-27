@@ -218,7 +218,7 @@ deltar <- 12 #par[7]
 message("Here we go. Run this shit.")
 catBest <- FoFempint(
   data = as.data.frame(cat_subset_test), bgal = bgal, rgal = rgal, Eb = Eb, Er = Er, coscale = T,
-  NNscale = 20, groupcalc = F, precalc = F, halocheck = T, apmaglim = r_lim,
+  NNscale = 20, groupcalc = T, precalc = F, halocheck = T, apmaglim = r_lim,
   denfunc = LFswmlfunc, colnames = column_data_names,
   intfunc = RunningDensity_z, intLumfunc = LFswmlintfuncLum, useorigind = T,
   dust = 0, dists = pre_calc_distances$dists, deltaden = pre_calc_distances$deltaden,
@@ -245,7 +245,7 @@ deltar <- 12 #par[7]
 message("Now run this shit.")
 catDefault <- FoFempint(
   data = as.data.frame(cat_subset_test), bgal = bgal, rgal = rgal, Eb = Eb, Er = Er, coscale = T,
-  NNscale = 20, groupcalc = F, precalc = F, halocheck = T, apmaglim = r_lim,
+  NNscale = 20, groupcalc = T, precalc = F, halocheck = T, apmaglim = r_lim,
   denfunc = LFswmlfunc, colnames = column_data_names,
   intfunc = RunningDensity_z, intLumfunc = LFswmlintfuncLum, useorigind = T,
   dust = 0, dists = pre_calc_distances$dists, deltaden = pre_calc_distances$deltaden,
