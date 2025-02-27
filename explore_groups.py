@@ -11,7 +11,7 @@ from astropy import units as u
 from astropy.cosmology import FlatLambdaCDM
 
 from Plotting_Galaxies.plot_gama_regions import RegionScatterPlot
-from utils import cut_region, g_23_footprint
+from utils import cut_region, g_09_footprint
 
 
 def quick_distribution(data_frame: pd.DataFrame, col_name: str, bins: int = 100, **kwargs) -> None:
@@ -45,25 +45,18 @@ if __name__ == '__main__':
     add_xyz(df_galaxies, 'RA', 'DEC', 'Z')
     df_group_galaxies = df_galaxies.iloc[gal_ids - 1]
 
-
-    infile = 'g23_group_catalog.csv'
+    infile = 'g09_group_catalog.csv'
     df = pd.read_csv(infile)
     add_xyz(df, 'IterCenRA', 'IterCenDEC', 'MedianZ')
-
-
-    mock_gal_ids, mock_group_ids = np.loadtxt('testing_broken_tuning_linking_table.csv')
-    df_mock_galaxies = pd.read_parquet('mocks/gama_gals_for_R.parquet')
-    add_xyz(df_mock_galaxies, 'ra', 'dec', 'zobs')
-    df_mock_group_galaxies = df_mock_galaxies[mock_gal_ids -1]
 
     scatter = RegionScatterPlot(df['IterCenRA'], df['MedianZ'], 1, s=np.log10(df['Mult'])*10, alpha=0.5, facecolor='none', edgecolors='k')
     scatter.plot_border(color='k', lw=3)
     scatter.plot_grid(color='r', alpha=0.1)
     plt.savefig('current_groups.png')
 
-    # Read in the GAMA thing. 
+    # Read in the GAMA thing.
     df_aaron = pd.read_csv('GAMA_groups_aaron.csv')
-    df_aaron_g09 = cut_region(df_aaron, g_23_footprint, ra_label='IterCenRA')
+    df_aaron_g09 = cut_region(df_aaron, g_09_footprint, ra_label='IterCenRA')
     scatter = RegionScatterPlot(df_aaron_g09['IterCenRA'], df_aaron_g09['IterCenZ'], s=np.log10(df_aaron_g09['Nfof'])*10, alpha=0.5)
     scatter.plot_border(color='k', lw=3)
     scatter.plot_grid(color='r', alpha=0.1)

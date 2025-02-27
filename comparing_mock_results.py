@@ -6,6 +6,7 @@ actually giving us a reasonable mock catalog.
 import pandas as pd
 import pylab as plt
 import numpy as np
+from astropy.io import fits
 
 
 if __name__ == '__main__':
@@ -32,9 +33,9 @@ if __name__ == '__main__':
     plt.ylabel('Counts', fontsize=20)
     plt.show()
 
-    # Check 
+    # Check
     # Check two. The host halo mass for all the isolated galaxies from the parquet files.
-    # So we are going to use the exact values of the actual isolated galaxies. 
+    # So we are going to use the exact values of the actual isolated galaxies.
     mock_raw_df = pd.read_parquet('mocks/gama_mock_data/gama_gals.parquet')
     mock_raw_gal_dist = np.unique(mock_raw_df['id_group_sky'], return_counts=1)[1] # including the true isolated.
     true_isolated_df = mock_raw_df[mock_raw_df['id_group_sky'] == -1]
@@ -50,4 +51,81 @@ if __name__ == '__main__':
     plt.hist(np.log10(true_isolated_df['mvir_hosthalo']), bins = np.arange(10, 16, 0.1))
     plt.xlabel('log(host virial Mass [Msol])', fontsize=20)
     plt.ylabel('Counts', fontsize=20)
+    plt.show()
+
+
+    #checking the halo mass distribution. 
+    mass_bins = np.arange(10, 15, 0.1)
+    plt.hist(np.log10(mock_raw_df[mock_raw_df['mvir_hosthalo'] != -1]['mvir_hosthalo']), bins = mass_bins, histtype='step', label='Not Isolated', density=True)
+    plt.hist(np.log10(true_isolated_df['mvir_hosthalo']), bins = mass_bins, histtype='step', label='True isolated', density=True)
+    plt.legend()
+    plt.xlabel('log10(mvir_host_halo)', fontsize=20)
+    plt.ylabel('Counts', fontsize=20)
+    plt.show()
+
+    # Comparing the Galform mock catalog to the current mock catalog and real data.
+    # Reading in Aarons group results
+    df_aaron = pd.read_csv('GAMA_groups_aaron.csv')
+    df_aaron = df_aaron[(df_aaron['IterCenRA'] > 100) & (df_aaron['IterCenRA'] < 150)]
+    df_default_testing = pd.read_csv('default_testing_group_catalog.csv')
+    # Reading in galform
+    galform_mocks = fits.open('mocks/G3CMockGalv04.fits')[1].data
+    ramag_cut = np.where((galform_mocks.RA < 141) & (galform_mocks.Rpetro < 19.65))
+    volume_cut = np.where(galform_mocks.Volume == 1)
+    cut = np.intersect1d(ramag_cut, volume_cut)
+
+    gal_form_counts = np.unique(galform_mocks.GroupID[cut], return_counts=True)[1]
+    print('Number of ungrouped galaxies are: ', gal_form_counts[0]/len(cut))
+    bins = np.arange(3, 50, 1)
+    plt.hist(mock_group_dist, bins = bins, histtype='step', lw=3, label='SHARK')
+    plt.hist(real_group_dist, bins=bins, histtype='step', lw=2, label='real')
+    plt.hist(df_aaron['Nfof'], bins=bins, histtype='step', label='Robotham+2011')
+    plt.hist(gal_form_counts[1:], bins=bins, histtype='step', lw=4, label='GalForm')
+    plt.hist(df_default_testing['Mult'], bins=bins, histtype='step', label='default settings on mock')
+    plt.legend()
+    plt.yscale('log')
+    plt.xlabel('Multiplicity', fontsize=20)
+    plt.ylabel('Counts', fontsize=20)
+    plt.show()
+
+    # looking at the n(z) of published, galform, shark, and defaults on shark.
+    z_bins = np.arange(0, 0.5, 0.01)
+    plt.hist(df_aaron['IterCenZ'], bins =z_bins, histtype='step', label='published')
+    plt.hist(df_default_testing['MedianZ'], bins=z_bins, histtype='step', label='default on shark')
+    plt.legend()
+    plt.show()
+
+
+    # Testing making the ids ourselves.
+    mock_raw_df['our_ids'] = \
+        np.array(mock_raw_df['tile']).astype(str) + '-' +\
+        np.array(mock_raw_df['subvolume']).astype(str) + '-' + \
+        np.array(mock_raw_df['id_halo_sam']).astype(str) + '-' +\
+        np.array(mock_raw_df['snapshot']).astype(str)
+
+    unique_group_list, raw_dist = np.unique(mock_raw_df['id_group_sky'], return_counts=True)
+    unique_group_list, raw_dist = unique_group_list[1:], raw_dist[1:]
+    for unique_group in unique_group_list:
+        sting_group = np.where(mock_raw_df['id_group_sky'] == unique_group)[0]
+        our_group = mock_raw_df.iloc[sting_group]['our_ids']
+        print(sting_group, np.array(our_group))
+        if len(sting_group) > 7:
+            group = mock_raw_df[mock_raw_df['id_group_sky'] == unique_group]
+            plt.scatter(group['ra'], group['dec'])
+            plt.show()
+
+    unique_our_list, dist = np.unique(mock_raw_df['our_ids'], return_counts=True)
+    for unique_group in unique_our_list:
+        our_group = np.where(mock_raw_df['our_ids'] == unique_group)[0]
+        sting_group = np.array(mock_raw_df.iloc[our_group]['id_group_sky'])
+        print(np.array(mock_raw_df.iloc[our_group]['our_ids']), sting_group)
+        if len(our_group) > 7:
+            group = mock_raw_df[mock_raw_df['our_ids'] == unique_group]
+            plt.scatter(group['ra'], group['dec'])
+            plt.show()
+
+    print('The percentage of galaxies identified as isolated with our ids: ', len(np.where(dist ==1)[0])/len(mock_raw_df))
+    bins = np.arange(2, 20, 1)
+    plt.hist(dist, bins=bins, histtype='step')
+    plt.hist(raw_dist, bins=bins, histtype='step')
     plt.show()
