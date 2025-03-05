@@ -5,16 +5,17 @@ renaming the column names to the keywords that are looked for in the R code.
 """
 
 import pandas as pd
+from astropy.table import Table
 
 
-def rename_groups(data_frame: pd.DataFrame) -> pd.DataFrame:
+def rename_groups(data_frame: pd.DataFrame, group_id_col_name: str, static_id: int) -> pd.DataFrame:
     """
     Renaming the data_frame groups from 1 .. N instead of the stingray naming convention.
     This is the way that the FoFR finder wants to work.
     """
-    unique_ids = data_frame["id_group_sky"].unique()
-    isolated_mask = data_frame["id_group_sky"] == -1  # isolated gals in stingray are -1
-    grouped_ids = sorted(unique_ids[unique_ids != -1])
+    unique_ids = data_frame[group_id_col_name].unique()
+    isolated_mask = data_frame[group_id_col_name] == static_id
+    grouped_ids = sorted(unique_ids[unique_ids != static_id])
 
     number_isolated_galaxies = isolated_mask.sum()
     data_frame.loc[isolated_mask, "id_group_sky"] = range(1, number_isolated_galaxies + 1)
@@ -42,12 +43,19 @@ def main():
     infile = "gama_mock_data/gama_gals.parquet"
     outfile = "gama_gals_for_R.parquet"
     df = pd.read_parquet(infile)
-    df = rename_groups(df)
+    df = rename_groups(df, 'id_group_sky', -1)
     df = rename_ids_col_names(df)
     df = df[df['total_ap_dust_r_VST'] < 19.65]
     df = df[(df['ra'] < 142) & (df['ra']>128)] # gama g09 region.
     df.to_parquet(outfile, index=False)
 
+    # Doing galform 
+    galform_infile = 'G3CMockGalv04.fits'
+    galform_outfile = 'gama_gals_for_R_galform.parquet'
+    df_galform = Table.read(galform_infile).to_pandas()
+    df_galform = df_galform[(df_galform['RA'] < 141) & (df_galform['Rpetro'] < 19.65) & (df_galform['Volume'] == 1)]
+    df_galform_new = df_galform.rename(columns={"GalID": "CATAID"})
+    df_galform_new.to_parquet(galform_outfile)
 
 if __name__ == "__main__":
     main()

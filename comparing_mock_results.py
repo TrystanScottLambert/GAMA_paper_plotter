@@ -7,6 +7,7 @@ import pandas as pd
 import pylab as plt
 import numpy as np
 from astropy.io import fits
+from astropy.table import Table
 
 
 if __name__ == '__main__':
@@ -69,13 +70,11 @@ if __name__ == '__main__':
     df_aaron = df_aaron[(df_aaron['IterCenRA'] > 100) & (df_aaron['IterCenRA'] < 150)]
     df_default_testing = pd.read_csv('default_testing_group_catalog.csv')
     # Reading in galform
-    galform_mocks = fits.open('mocks/G3CMockGalv04.fits')[1].data
-    ramag_cut = np.where((galform_mocks.RA < 141) & (galform_mocks.Rpetro < 19.65))
-    volume_cut = np.where(galform_mocks.Volume == 1)
-    cut = np.intersect1d(ramag_cut, volume_cut)
+    df_galform = Table.read('mocks/G3CMockGalv04.fits').to_pandas()
+    df_galform = df_galform[(df_galform['RA'] < 141) & (df_galform['Rpetro'] < 19.65) & (df_galform['Volume'] == 1)]
 
-    gal_form_counts = np.unique(galform_mocks.GroupID[cut], return_counts=True)[1]
-    print('Number of ungrouped galaxies are: ', gal_form_counts[0]/len(cut))
+    gal_form_counts = np.unique(df_galform['GroupID'], return_counts=True)[1]
+    print('Number of ungrouped galaxies are: ', gal_form_counts[0]/len(df_galform))
     bins = np.arange(3, 50, 1)
     plt.hist(mock_group_dist, bins = bins, histtype='step', lw=3, label='SHARK')
     plt.hist(real_group_dist, bins=bins, histtype='step', lw=2, label='real')
@@ -102,30 +101,3 @@ if __name__ == '__main__':
         np.array(mock_raw_df['subvolume']).astype(str) + '-' + \
         np.array(mock_raw_df['id_halo_sam']).astype(str) + '-' +\
         np.array(mock_raw_df['snapshot']).astype(str)
-
-    unique_group_list, raw_dist = np.unique(mock_raw_df['id_group_sky'], return_counts=True)
-    unique_group_list, raw_dist = unique_group_list[1:], raw_dist[1:]
-    for unique_group in unique_group_list:
-        sting_group = np.where(mock_raw_df['id_group_sky'] == unique_group)[0]
-        our_group = mock_raw_df.iloc[sting_group]['our_ids']
-        print(sting_group, np.array(our_group))
-        if len(sting_group) > 7:
-            group = mock_raw_df[mock_raw_df['id_group_sky'] == unique_group]
-            plt.scatter(group['ra'], group['dec'])
-            plt.show()
-
-    unique_our_list, dist = np.unique(mock_raw_df['our_ids'], return_counts=True)
-    for unique_group in unique_our_list:
-        our_group = np.where(mock_raw_df['our_ids'] == unique_group)[0]
-        sting_group = np.array(mock_raw_df.iloc[our_group]['id_group_sky'])
-        print(np.array(mock_raw_df.iloc[our_group]['our_ids']), sting_group)
-        if len(our_group) > 7:
-            group = mock_raw_df[mock_raw_df['our_ids'] == unique_group]
-            plt.scatter(group['ra'], group['dec'])
-            plt.show()
-
-    print('The percentage of galaxies identified as isolated with our ids: ', len(np.where(dist ==1)[0])/len(mock_raw_df))
-    bins = np.arange(2, 20, 1)
-    plt.hist(dist, bins=bins, histtype='step')
-    plt.hist(raw_dist, bins=bins, histtype='step')
-    plt.show()

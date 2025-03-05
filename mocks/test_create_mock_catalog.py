@@ -40,9 +40,9 @@ class TestRenameFunctions(unittest.TestCase):
         Testing that we rename the group ids correctly.
         """
         df_test = pd.read_parquet(self.buffer)
-        df_transformed = rename_groups(df_test)
+        df_transformed = rename_groups(df_test, 'id_group_sky', -1)
         df_transformed = rename_ids_col_names(df_transformed)
-        
+
         expected_group_ids = [1, 2, 3, 4]
         self.assertListEqual(df_transformed["GroupID"].unique().tolist(), expected_group_ids)
 
