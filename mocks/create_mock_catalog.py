@@ -48,7 +48,7 @@ def main():
     df = df[df['total_ap_dust_r_VST'] < 19.65]
     df = df[(df['ra'] < 142) & (df['ra']>128)] # gama g09 region.
     df.to_parquet(outfile, index=False)
-
+    
     # Doing galform 
     galform_infile = 'G3CMockGalv04.fits'
     galform_outfile = 'gama_gals_for_R_galform.parquet'

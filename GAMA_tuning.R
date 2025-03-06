@@ -207,8 +207,8 @@ column_data_names = intersect(c("ra", "dec", "zobs", "total_ap_dust_r_VST"), col
 # Testing the FoFempint
 # Testing the "best params"
 
-bgal <- 4.92/100
-rgal <- 19.716
+bgal <- 5.934/100
+rgal <- 19.56
 Eb <- 0 #par[3]
 Er <- 0 #par[4]
 deltacontrast <- 9 #par[5]
@@ -257,8 +257,8 @@ catDefault <- FoFempint(
   right = Dright[2], bottom = Dbottom[2], top = Dtop[2], OmegaL = 0.7, OmegaM = 0.3
 )
 
-write.csv(as.data.frame(catBest$grouptable), 'default_testing_group_catalog.csv', row.names=FALSE, quote=FALSE)
-write.csv(as.data.frame(catBest$grefs), 'default_testing_galaxy_linking_table.csv', row.names=FALSE, quote=FALSE)
+write.csv(as.data.frame(catDefault$grouptable), 'default_testing_group_catalog.csv', row.names=FALSE, quote=FALSE)
+write.csv(as.data.frame(catDefault$grefs), 'default_testing_galaxy_linking_table.csv', row.names=FALSE, quote=FALSE)
 message("We are done. Kill program")
 
 #optimFoFfunc(c(0.005, 10, -0.5, -0.6, 0.04, 0.90, 1.00), cal_data_gama)

@@ -14,8 +14,8 @@ if __name__ == '__main__':
     # first compare that the mock actually looks like the gama field.
     mock_df = pd.read_parquet('mocks/gama_gals_for_R.parquet')
     actual_data = pd.read_csv('gama_galaxy_catalogs/g09_galaxies.dat', sep=' ')
-    actual_linking_table = pd.read_csv('g09_galaxy_linking_table.csv')
-    actual_groups = pd.read_csv('g09_group_catalog.csv')
+    actual_linking_table = pd.read_csv('best_testing_galaxy_linking_table.csv')
+    actual_groups = pd.read_csv('best_testing_group_catalog.csv')
 
     number_of_real_isolated = len(actual_data) - len(actual_linking_table)
     number_of_mock_isolated = len(np.where(np.unique(mock_df['GroupID'], return_counts=True)[1] == 1)[0])
@@ -77,7 +77,7 @@ if __name__ == '__main__':
     print('Number of ungrouped galaxies are: ', gal_form_counts[0]/len(df_galform))
     bins = np.arange(3, 50, 1)
     plt.hist(mock_group_dist, bins = bins, histtype='step', lw=3, label='SHARK')
-    plt.hist(real_group_dist, bins=bins, histtype='step', lw=2, label='real')
+    #plt.hist(real_group_dist, bins=bins, histtype='step', lw=2, label='real')
     plt.hist(df_aaron['Nfof'], bins=bins, histtype='step', label='Robotham+2011')
     plt.hist(gal_form_counts[1:], bins=bins, histtype='step', lw=4, label='GalForm')
     plt.hist(df_default_testing['Mult'], bins=bins, histtype='step', label='default settings on mock')
