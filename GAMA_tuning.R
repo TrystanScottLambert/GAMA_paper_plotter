@@ -83,7 +83,7 @@ calibration_cat <- as.data.table(arrow::read_parquet("mocks/gama_gals_for_R.parq
 calibration_cat <- calibration_cat[total_ap_dust_r_VST < r_lim, ]
 #calibration_cat <- calibration_cat[completeness_selected == 1, ]
 
-opt_param_init_guess <- c(5, 18) #c(0.05, 18, 0, 0, 0.8, 9.0000, 1.5000)
+opt_param_init_guess <- c(5, 18, 0, 0, 8, 9.0000, 1.5000)
 data(circsamp)
 
 Dleft <- c(30.2, 129.0, 174.0, 211.5, 399.0)
@@ -96,11 +96,11 @@ optimFoFfunc <- function(par, data) {
   cat <- data$maincat
   bgal <- par[1]/100
   rgal <- par[2]
-  Eb <- 0 #par[3]
-  Er <- 0 #par[4]
-  deltacontrast <- 9 #par[5]
-  deltarad <- 1.5 #par[6]
-  deltar <- 12 #par[7]
+  Eb <- par[3]/10
+  Er <- par[4]/10
+  deltacontrast <- par[5]/10
+  deltarad <- par[6]
+  deltar <- par[7]
   
   number_of_lightcones = 1
   FoFout <- foreach(LC = 1:number_of_lightcones) %do% { 
@@ -242,24 +242,24 @@ deltacontrast <- 9 #par[5]
 deltarad <- 1.5 #par[6]
 deltar <- 12 #par[7]
 
-message("Now run this shit.")
-catDefault <- FoFempint(
-  data = as.data.frame(cat_subset_test), bgal = bgal, rgal = rgal, Eb = Eb, Er = Er, coscale = T,
-  NNscale = 20, groupcalc = T, precalc = F, halocheck = T, apmaglim = r_lim,
-  denfunc = LFswmlfunc, colnames = column_data_names,
-  intfunc = RunningDensity_z, intLumfunc = LFswmlintfuncLum, useorigind = T,
-  dust = 0, dists = pre_calc_distances$dists, deltaden = pre_calc_distances$deltaden,
-  denexp = pre_calc_distances$denexp, oblim = pre_calc_distances$oblim, sigerr = 0,
-  scalemass = 1, scaleflux = 1, localcomp = 0.9, extra = F, MagDenScale = 0,
-  realIDs = cat_subset_test$CATAID, deltacontrast = deltacontrast,
-  deltarad = deltarad, deltar = deltar, circsamp = circsamp, verbose = FALSE,
-  zvDmod = zvDmod737, Dmodvz = Dmodvz737, multcut = 5, left = Dleft[2],
-  right = Dright[2], bottom = Dbottom[2], top = Dtop[2], OmegaL = 0.7, OmegaM = 0.3
-)
+#message("Now run this shit.")
+#catDefault <- FoFempint(
+#  data = as.data.frame(cat_subset_test), bgal = bgal, rgal = rgal, Eb = Eb, Er = Er, coscale = T,
+#  NNscale = 20, groupcalc = T, precalc = F, halocheck = T, apmaglim = r_lim,
+#  denfunc = LFswmlfunc, colnames = column_data_names,
+#  intfunc = RunningDensity_z, intLumfunc = LFswmlintfuncLum, useorigind = T,
+#  dust = 0, dists = pre_calc_distances$dists, deltaden = pre_calc_distances$deltaden,
+#  denexp = pre_calc_distances$denexp, oblim = pre_calc_distances$oblim, sigerr = 0,
+#  scalemass = 1, scaleflux = 1, localcomp = 0.9, extra = F, MagDenScale = 0,
+#  realIDs = cat_subset_test$CATAID, deltacontrast = deltacontrast,
+#  deltarad = deltarad, deltar = deltar, circsamp = circsamp, verbose = FALSE,
+#  zvDmod = zvDmod737, Dmodvz = Dmodvz737, multcut = 5, left = Dleft[2],
+#  right = Dright[2], bottom = Dbottom[2], top = Dtop[2], OmegaL = 0.7, OmegaM = 0.3
+#)
 
-write.csv(as.data.frame(catDefault$grouptable), 'default_testing_group_catalog.csv', row.names=FALSE, quote=FALSE)
-write.csv(as.data.frame(catDefault$grefs), 'default_testing_galaxy_linking_table.csv', row.names=FALSE, quote=FALSE)
-message("We are done. Kill program")
+#write.csv(as.data.frame(catDefault$grouptable), 'default_testing_group_catalog.csv', row.names=FALSE, quote=FALSE)
+#write.csv(as.data.frame(catDefault$grefs), 'default_testing_galaxy_linking_table.csv', row.names=FALSE, quote=FALSE)
+#message("We are done. Kill program")
 
 #optimFoFfunc(c(0.005, 10, -0.5, -0.6, 0.04, 0.90, 1.00), cal_data_gama)
 
@@ -269,12 +269,12 @@ opt_gama <- Highlander(opt_param_init_guess,
     Data = cal_data_gama, likefunc = optimFoFfunc, likefunctype = "CMA",
     # optim_iters = 2, liketype = 'max', Niters = c(5,5), NfinalMCMC = 25,
     optim_iters = 2, liketype = "max", Niters = c(250, 250), NfinalMCMC = 2500,
-    lower = c(4, 15),
-    upper = c(6, 25),
-    parm.names = c("bgal", "rgal"),
-    #lower = c(0.04, 15, -0.5, -0.5, 0.04, 7, 1.00),
-    #upper = c(0.06, 25, 0.5, 0.5, 1.2, 11, 2),
-    #parm.names = c("bgal", "rgal", "Eb", "Er", "deltacontrast", "deltarad", "deltar"),
+    #lower = c(4, 15),
+    #upper = c(6, 25),
+    #parm.names = c("bgal", "rgal"),
+    lower = c(3, 15, -0.5, -0.5, 0, 7, 1.00),
+    upper = c(7, 25, 0.5, 0.5, 12, 11, 2),
+    parm.names = c("bgal", "rgal", "Eb", "Er", "deltacontrast", "deltarad", "deltar"),
     seed=666
 )
 # Printing the best parameters and FoM
