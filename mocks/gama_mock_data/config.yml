@@ -4,10 +4,10 @@ Cosmology:
 
 Catalogue_Details:
   area: "dont know"
-  mag_filter: "total_ap_dust_r_VST"
+  mag_filter: "total_ap_dust_r_SDSS"
   mag_cut: 19.65
   redshift_cut: 0.2
-  version: "0.1.0"
+  version: "0.2.0"
 
 Properties_To_Read_In:
   groups: [id_group_sky, ra, dec, zobs, zcos, subvolume, tile, id_halo_sam, flag, snapshot]
@@ -26,4 +26,4 @@ Sub_Directory: "split/"
 SED_file: "Sting-SED-eagle-rr14"
 Lightcone_file: 'mocksky'
 Sub_Volumes: 64
-Outfile_Prefix: 'gama'
+Outfile_Prefix: 'gama0'
