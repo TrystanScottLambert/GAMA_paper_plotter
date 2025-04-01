@@ -39,6 +39,18 @@ def add_xyz(data_frame: pd.DataFrame, ra_col: str, dec_col: str, z_col: str) -> 
 
 
 if __name__ == '__main__':
+    """
+    Looking for Luke
+    """
+    infile = '../../Downloads/GAMA_ApTO4h.csv'
+    df = pd.read_csv(infile)
+    plt.show()
+    plt.scatter(df['IterCenRA'], df['IterCenDec'])
+    plt.xlabel("RA")
+    plt.ylabel("Dec")
+    plt.title("Galaxy Groups in G3CFoFGroupv10")
+    plt.show()
+
     gal_ids, group_ids = np.loadtxt('g09_galaxy_linking_table.csv', delimiter=',', unpack=True, skiprows=1)
 
     df_galaxies = pd.read_csv('gama_galaxy_catalogs/g09_galaxies.dat', sep='\s+')
@@ -56,6 +68,8 @@ if __name__ == '__main__':
 
     # Read in the GAMA thing.
     df_aaron = pd.read_csv('GAMA_groups_aaron.csv')
+    plt.scatter(df_aaron['IterCenRA'], df_aaron['IterCenDec'])
+    plt.show()
     df_aaron_g09 = cut_region(df_aaron, g_09_footprint, ra_label='IterCenRA')
     scatter = RegionScatterPlot(df_aaron_g09['IterCenRA'], df_aaron_g09['IterCenZ'], s=np.log10(df_aaron_g09['Nfof'])*10, alpha=0.5)
     scatter.plot_border(color='k', lw=3)

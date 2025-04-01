@@ -14,7 +14,7 @@ library(FoF)
 t0 <- proc.time()
 set.seed(2)
 
-# This is here only because FoFempint expects this as input, 
+# This is here only because FoFempint expects this as input,
 # eventually we should rework the FoFempint code
 # so that it is not longer the case.
 xseq <- seq(0, 1.4, by = 1e-4)
@@ -101,15 +101,15 @@ optimFoFfunc <- function(par, data) {
   deltacontrast <- par[5]/10
   deltarad <- par[6]
   deltar <- par[7]
-  
+
   number_of_lightcones = 1
-  FoFout <- foreach(LC = 1:number_of_lightcones) %do% { 
-    
+  FoFout <- foreach(LC = 1:number_of_lightcones) %do% {
+
     cat_subset <- as.data.frame(cat)
-    
+
     precalc_file <- paste("./dist_precalc.rda")
     column_data_names = intersect(c("ra", "dec", "zobs", "total_ap_dust_r_VST"), colnames(cat_subset))
-    
+
     if (file.exists(precalc_file)) {
       load(precalc_file)
     } else {
@@ -129,7 +129,7 @@ optimFoFfunc <- function(par, data) {
       save(pre_calc_distances, file = precalc_file)
       print("Precalculated distances saved to file")
     }
-    
+
     out <- tryCatch({
       catGroup <- FoFempint(
         data = as.data.frame(cat_subset), bgal = bgal, rgal = rgal, Eb = Eb, Er = Er, coscale = T,
@@ -144,7 +144,7 @@ optimFoFfunc <- function(par, data) {
         zvDmod = zvDmod737, Dmodvz = Dmodvz737, multcut = 5, left = Dleft[2],
         right = Dright[2], bottom = Dbottom[2], top = Dtop[2], OmegaL = 0.7, OmegaM = 0.3
       )
-      
+
       list(
         mockfrac_num = catGroup$summary["mockfrac_num"],
         mockfrac_den = catGroup$summary["mockfrac_den"],
@@ -163,19 +163,19 @@ optimFoFfunc <- function(par, data) {
         fofint_num = 0, fofint_den = 0
       ))
     })
-    
+
     out
   }
-  
+
   mockfrac_num <- NULL
   mockfrac_den <- NULL
   foffrac_num <- NULL
   foffrac_den <- NULL
   mockint_num <- NULL
-  mockint_den <- NULL 
+  mockint_den <- NULL
   fofint_num <- NULL
   fofint_den <- NULL
-  
+
   for (o in FoFout) {
     mockfrac_num <- c(mockfrac_num, o[["mockfrac_num"]])
     mockfrac_den <- c(mockfrac_den, o[["mockfrac_den"]])
@@ -186,7 +186,7 @@ optimFoFfunc <- function(par, data) {
     fofint_num <- c(fofint_num, o[["fofint_num"]])
     fofint_den <- c(fofint_den, o[["fofint_den"]])
   }
-  
+
   FoM <- (sum(mockfrac_num) / sum(mockfrac_den)) * (sum(foffrac_num) / sum(foffrac_den))
   FoM <- FoM * (sum(mockint_num) / sum(mockint_den)) * (sum(fofint_num) / sum(fofint_den))
   if (is.na(FoM) || is.infinite(FoM)) {

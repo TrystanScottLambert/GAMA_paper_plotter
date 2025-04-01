@@ -20,7 +20,6 @@ z_to_mod_matrix = data.frame(redshift = redshift, distance_modulus = cosdistDist
 z_to_dmod = approxfun(z_to_mod_matrix[,1], z_to_mod_matrix[,2])
 dmod_to_z = approxfun(z_to_mod_matrix[,2], z_to_mod_matrix[,1])
 
-data(FoF::LFswml) # reading in the LF as given in the FoF package. (exclusive for GAMA)
 cut=-14
 tempLFswml = LFswml[LFswml[,2]< cut,c(2,3)]
 tempLFswml = cbind(tempLFswml,2*tempLFswml[,2]*(1/sqrt(LFswml[LFswml[,2]< cut,4])))
@@ -86,10 +85,10 @@ for (colim in seq(0, 2000, len=N)){
 
 # work out the comoving volume at each bin.
 radii = seq(0, 2000, len=N)
-volume_of_shells = ((4/3)*pi*(radii + bin/2))**3 - ((4/3)*pi*(radii - bin/2))**3 
+volume_of_shells = ((4/3)*pi*(radii + bin/2))**3 - ((4/3)*pi*(radii - bin/2))**3
 
 RunningVolume = gama_fraction_sky*volume_of_shells
-RunningDensity_D = approxfun(temp$x, GalRanCounts*tempint/RunningVolume, rule=2) 
+RunningDensity_D = approxfun(temp$x, GalRanCounts*tempint/RunningVolume, rule=2)
 RunningDensity_z = approxfun(distfunc_D2z(temp$x), GalRanCounts*tempint/RunningVolume, rule=2)
 #
 #
@@ -108,11 +107,10 @@ data_column_names <- column_names[-1]
 #I'm just assuming 100% completeness and I should have a look at the way Aaron does the completeness stuff.
 optuse=c(0.06, 18, 0, -0.02, 0.63, 9.0000, 1.5000, 12.0000)
 # see if this magdenscale makes a difference optuse[5]
-data(FoF::circsamp)
 cat=FoF::FoFempint(
-  data=gama, bgal=optuse[1], rgal=optuse[2], Eb=optuse[3], Er=optuse[4], 
-  coscale=T, NNscale=3, groupcalc=T, precalc=F, halocheck=F, apmaglim=19.65, colnames=data_column_names, 
-  denfunc=LFswmlfunc, intfunc=RunningDensity_z, intLumfunc=LFswmlintfuncLum, 
+  data=gama, bgal=optuse[1], rgal=optuse[2], Eb=optuse[3], Er=optuse[4],
+  coscale=T, NNscale=3, groupcalc=T, precalc=F, halocheck=F, apmaglim=19.65, colnames=data_column_names,
+  denfunc=LFswmlfunc, intfunc=RunningDensity_z, intLumfunc=LFswmlintfuncLum,
   useorigind=T, realIDs = T, dust=0,scalemass=1,scaleflux=1,extra=F,
   MagDenScale=1,deltacontrast=optuse[6],deltarad=optuse[7],deltar=optuse[8],
   circsamp=circsamp,Mmax=1e15, zvDmod = z_to_dmod, Dmodvz = dmod_to_z,

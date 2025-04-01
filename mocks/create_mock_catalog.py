@@ -36,6 +36,11 @@ def rename_ids_col_names(data_frame: pd.DataFrame) -> pd.DataFrame:
     df_new = data_frame.rename(columns={"id_group_sky": "GroupID", "id_galaxy_sky": "CATAID"})
     return df_new
 
+def reduce_group_catalog(group_catalog: pd.DataFrame, galaxy_catalog: pd.DataFrame) -> pd.DataFrame:
+    """
+    Working outw hich groups 
+    """
+
 def main():
     """
     Rename the ids and columns
@@ -48,7 +53,7 @@ def main():
     df = df[df['total_ap_dust_r_VST'] < 19.65]
     df = df[(df['ra'] < 142) & (df['ra']>128)] # gama g09 region.
     df.to_parquet(outfile, index=False)
-    
+
     # Doing galform 
     galform_infile = 'G3CMockGalv04.fits'
     galform_outfile = 'gama_gals_for_R_galform.parquet'
