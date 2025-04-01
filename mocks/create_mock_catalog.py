@@ -36,11 +36,6 @@ def rename_ids_col_names(data_frame: pd.DataFrame) -> pd.DataFrame:
     df_new = data_frame.rename(columns={"id_group_sky": "GroupID", "id_galaxy_sky": "CATAID"})
     return df_new
 
-def reduce_group_catalog(group_catalog: pd.DataFrame, galaxy_catalog: pd.DataFrame) -> pd.DataFrame:
-    """
-    Working outw hich groups 
-    """
-
 def main():
     """
     Rename the ids and columns
