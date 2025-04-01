@@ -5,7 +5,8 @@ renaming the column names to the keywords that are looked for in the R code.
 """
 
 import pandas as pd
-from astropy.table import Table
+import pylab as plt
+#from astropy.table import Table
 
 
 def rename_groups(data_frame: pd.DataFrame, group_id_col_name: str, static_id: int) -> pd.DataFrame:
@@ -40,22 +41,21 @@ def main():
     """
     Rename the ids and columns
     """
-    infile = "gama_mock_data/gama_gals.parquet"
+    infile = "gama_mock_data/all_lightcones/gama0_gals_matched.parquet"
     outfile = "gama_gals_for_R.parquet"
     df = pd.read_parquet(infile)
     df = rename_groups(df, 'id_group_sky', -1)
     df = rename_ids_col_names(df)
-    df = df[df['total_ap_dust_r_VST'] < 19.65]
-    df = df[(df['ra'] < 142) & (df['ra']>128)] # gama g09 region.
+    df = df[df['total_ap_dust_r_SDSS_matched'] < 19.65]
     df.to_parquet(outfile, index=False)
 
     # Doing galform 
-    galform_infile = 'G3CMockGalv04.fits'
-    galform_outfile = 'gama_gals_for_R_galform.parquet'
-    df_galform = Table.read(galform_infile).to_pandas()
-    df_galform = df_galform[(df_galform['RA'] < 141) & (df_galform['Rpetro'] < 19.65) & (df_galform['Volume'] == 1)]
-    df_galform_new = df_galform.rename(columns={"GalID": "CATAID"})
-    df_galform_new.to_parquet(galform_outfile)
+    #galform_infile = 'G3CMockGalv04.fits'
+    #galform_outfile = 'gama_gals_for_R_galform.parquet'
+    #df_galform = Table.read(galform_infile).to_pandas()
+    #df_galform = df_galform[(df_galform['RA'] < 141) & (df_galform['Rpetro'] < 19.65) & (df_galform['Volume'] == 1)]
+    #df_galform_new = df_galform.rename(columns={"GalID": "CATAID"})
+    #df_galform_new.to_parquet(galform_outfile)
 
 if __name__ == "__main__":
     main()

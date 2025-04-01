@@ -49,19 +49,18 @@ N <- 1e4
 # RanCat = fread('/scratch/pawsey0119/mbravo/DEVILS_data/DEVILS_D10_RandomCat_240212_v0.2.csv')
 # Commented out because fread would throw an error in Setonix (???)
 random_catalog_factor <- 400 # this is how many more times the random catalog is than the base cat.
-RanCat <- as.data.table(read.csv("gama_g09_randoms.txt"))
-G02area <- skyarea(c(30.2, 38.8), c(-10.25, -3.72))
+RanCat <- as.data.table(read.csv("gama_combined_randoms.txt"))
 G09area <- skyarea(c(129, 141), c(-2, 3))
 G12area <- skyarea(c(174, 186), c(-3, 2))
 G15area <- skyarea(c(211.5, 223.5), c(-2, 3))
 G23area <- skyarea(c(339, 351), c(-35, -30))
-GAMAarea <- sum(G09area[2], G12area[2], G15area[2], G23area[2], G02area[2])
+GAMAarea <- sum(G09area[2], G12area[2], G15area[2], G23area[2])
 
 distfunc_z2D <- cosmapfunc("z", "CoDist", H0 = 100, OmegaM = 0.30, OmegaL = 0.70, zrange = c(0, 3), step = "a", res = N)
 distfunc_D2z <- cosmapfunc("CoDist", "z", H0 = 100, OmegaM = 0.30, OmegaL = 0.70, zrange = c(0, 3), step = "a", res = N)
 temp <- distfunc_z2D(RanCat[, z])
 RanCat[, "CoDist"] <- temp
-GalRanCounts <- (dim(RanCat)[1] / random_catalog_factor) # TODO: make randoms cat that combines all gama-fields
+GalRanCounts <- (dim(RanCat)[1] / random_catalog_factor)
 
 bin <- 40
 temp <- density(RanCat[, CoDist], bw = bin / sqrt(12), from = 0, to = 2000, n = N, kern = "rect")
@@ -86,10 +85,10 @@ calibration_cat <- calibration_cat[total_ap_dust_r_VST < r_lim, ]
 opt_param_init_guess <- c(5, 18, 0, 0, 8, 9.0000, 1.5000)
 data(circsamp)
 
-Dleft <- c(30.2, 129.0, 174.0, 211.5, 399.0)
-Dright <- c(38.8, 141.0, 186.0, 223.5, 351.0)
-Dbottom <- c(-10.25, -2, -3, -2, -35)
-Dtop <- c(-3.72, 3, 2, 3, -30)
+Dleft <- c(129.0, 174.0, 211.5, 399.0)
+Dright <- c(141.0, 186.0, 223.5, 351.0)
+Dbottom <- c(-2, -3, -2, -35)
+Dtop <- c(3, 2, 3, -30)
 
 optimFoFfunc <- function(par, data) {
   message(cat(par))
@@ -123,7 +122,7 @@ optimFoFfunc <- function(par, data) {
         realIDs = cat_subset$CATAID, extra = F, sigerr = 0, MagDenScale = 0,
         deltacontrast = deltacontrast, deltarad = deltarad, deltar = deltar,
         circsamp = circsamp, zvDmod = zvDmod737, Dmodvz = Dmodvz737, multcut = 5,
-        left = Dleft[2], right = Dright[2], bottom = Dbottom[2], top = Dtop[2], OmegaL = 0.7,
+        left = Dleft, right = Dright, bottom = Dbottom, top = Dtop, OmegaL = 0.7,
         OmegaM = 0.3
       )
       save(pre_calc_distances, file = precalc_file)
@@ -141,8 +140,8 @@ optimFoFfunc <- function(par, data) {
         scalemass = 1, scaleflux = 1, localcomp = 0.9, extra = F, MagDenScale = 0,
         realIDs = cat_subset$CATAID, deltacontrast = deltacontrast,
         deltarad = deltarad, deltar = deltar, circsamp = circsamp, verbose = FALSE,
-        zvDmod = zvDmod737, Dmodvz = Dmodvz737, multcut = 5, left = Dleft[2],
-        right = Dright[2], bottom = Dbottom[2], top = Dtop[2], OmegaL = 0.7, OmegaM = 0.3
+        zvDmod = zvDmod737, Dmodvz = Dmodvz737, multcut = 5, left = Dleft,
+        right = Dright, bottom = Dbottom, top = Dtop, OmegaL = 0.7, OmegaM = 0.3
       )
 
       list(
@@ -207,31 +206,31 @@ column_data_names = intersect(c("ra", "dec", "zobs", "total_ap_dust_r_VST"), col
 # Testing the FoFempint
 # Testing the "best params"
 
-bgal <- 5.934/100
-rgal <- 19.56
-Eb <- 0 #par[3]
-Er <- 0 #par[4]
-deltacontrast <- 9 #par[5]
-deltarad <- 1.5 #par[6]
-deltar <- 12 #par[7]
+#bgal <- 5.934/100
+#rgal <- 19.56
+#Eb <- 0 #par[3]
+#Er <- 0 #par[4]
+#deltacontrast <- 9 #par[5]
+#deltarad <- 1.5 #par[6]
+#deltar <- 12 #par[7]
 
-message("Here we go. Run this shit.")
-catBest <- FoFempint(
-  data = as.data.frame(cat_subset_test), bgal = bgal, rgal = rgal, Eb = Eb, Er = Er, coscale = T,
-  NNscale = 20, groupcalc = T, precalc = F, halocheck = T, apmaglim = r_lim,
-  denfunc = LFswmlfunc, colnames = column_data_names,
-  intfunc = RunningDensity_z, intLumfunc = LFswmlintfuncLum, useorigind = T,
-  dust = 0, dists = pre_calc_distances$dists, deltaden = pre_calc_distances$deltaden,
-  denexp = pre_calc_distances$denexp, oblim = pre_calc_distances$oblim, sigerr = 0,
-  scalemass = 1, scaleflux = 1, localcomp = 0.9, extra = F, MagDenScale = 0,
-  realIDs = cat_subset_test$CATAID, deltacontrast = deltacontrast,
-  deltarad = deltarad, deltar = deltar, circsamp = circsamp, verbose = FALSE,
-  zvDmod = zvDmod737, Dmodvz = Dmodvz737, multcut = 5, left = Dleft[2],
-  right = Dright[2], bottom = Dbottom[2], top = Dtop[2], OmegaL = 0.7, OmegaM = 0.3
-)
+#message("Here we go. Run this shit.")
+#catBest <- FoFempint(
+#  data = as.data.frame(cat_subset_test), bgal = bgal, rgal = rgal, Eb = Eb, Er = Er, coscale = T,
+#  NNscale = 20, groupcalc = T, precalc = F, halocheck = T, apmaglim = r_lim,
+#  denfunc = LFswmlfunc, colnames = column_data_names,
+#  intfunc = RunningDensity_z, intLumfunc = LFswmlintfuncLum, useorigind = T,
+#  dust = 0, dists = pre_calc_distances$dists, deltaden = pre_calc_distances$deltaden,
+#  denexp = pre_calc_distances$denexp, oblim = pre_calc_distances$oblim, sigerr = 0,
+#  scalemass = 1, scaleflux = 1, localcomp = 0.9, extra = F, MagDenScale = 0,
+#  realIDs = cat_subset_test$CATAID, deltacontrast = deltacontrast,
+#  deltarad = deltarad, deltar = deltar, circsamp = circsamp, verbose = FALSE,
+#  zvDmod = zvDmod737, Dmodvz = Dmodvz737, multcut = 5, left = Dleft,
+#  right = Dright, bottom = Dbottom, top = Dtop, OmegaL = 0.7, OmegaM = 0.3
+#)
 
-write.csv(as.data.frame(catBest$grouptable), 'best_testing_group_catalog.csv', row.names=FALSE, quote=FALSE)
-write.csv(as.data.frame(catBest$grefs), 'best_testing_galaxy_linking_table.csv', row.names=FALSE, quote=FALSE)
+#write.csv(as.data.frame(catBest$grouptable), 'best_testing_group_catalog.csv', row.names=FALSE, quote=FALSE)
+#write.csv(as.data.frame(catBest$grefs), 'best_testing_galaxy_linking_table.csv', row.names=FALSE, quote=FALSE)
 
 # Testing the "default params"
 bgal <- opt_param_init_guess[1]/100
