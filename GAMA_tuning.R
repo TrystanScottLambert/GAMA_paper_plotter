@@ -1,6 +1,6 @@
 library(foreach)
 library(doParallel)
-registerDoParallel(cores = 16)
+registerDoParallel(cores = 11)
 library(data.table)
 library(celestial)
 library(arrow)
