@@ -1,6 +1,6 @@
 library(foreach)
 library(doParallel)
-registerDoParallel(cores = 11)
+registerDoParallel(cores = 9)
 library(data.table)
 library(celestial)
 library(arrow)
@@ -48,13 +48,13 @@ LFswmlintfuncLum <- function(x) {
 N <- 1e4
 # RanCat = fread('/scratch/pawsey0119/mbravo/DEVILS_data/DEVILS_D10_RandomCat_240212_v0.2.csv')
 # Commented out because fread would throw an error in Setonix (???)
-random_catalog_factor <- 400 # this is how many more times the random catalog is than the base cat.
-RanCat <- as.data.table(read.csv("gama_combined_randoms.txt"))
+random_catalog_factor <- 400 # CHANGE this
+RanCat <- as.data.table(read.csv("gama_combined_randoms.txt")) # CHANGE gama_combined_randoms.txt
 G09area <- skyarea(c(129, 141), c(-2, 3))
 G12area <- skyarea(c(174, 186), c(-3, 2))
 G15area <- skyarea(c(211.5, 223.5), c(-2, 3))
 G23area <- skyarea(c(339, 351), c(-35, -30))
-GAMAarea <- sum(G09area[2], G12area[2], G15area[2], G23area[2])
+GAMAarea_fractional <- sum(G09area[2], G12area[2], G15area[2], G23area[2])
 
 distfunc_z2D <- cosmapfunc("z", "CoDist", H0 = 100, OmegaM = 0.30, OmegaL = 0.70, zrange = c(0, 3), step = "a", res = N)
 distfunc_D2z <- cosmapfunc("CoDist", "z", H0 = 100, OmegaM = 0.30, OmegaL = 0.70, zrange = c(0, 3), step = "a", res = N)
@@ -73,19 +73,20 @@ for (colim in seq(0, 2000, len = N)) {
 
 RunningVolume <- (4 / 3) * pi * (seq(0, 2000, len = N) + bin / 2)^3
 RunningVolume <- RunningVolume - ((4 / 3) * pi * (seq(0, 2000, len = N) - bin / 2)^3)
-RunningVolume <- G09area * RunningVolume
+RunningVolume <- GAMAarea_fractional * RunningVolume #CHANGE
 RunningDensity_D <- approxfun(temp$x, GalRanCounts * tempint / RunningVolume, rule = 2)
 RunningDensity_z <- approxfun(distfunc_D2z(temp$x), GalRanCounts * tempint / RunningVolume, rule = 2)
 
-r_lim <- 19.65 # new GAMA completeness
+r_lim <- 19.65
 calibration_cat <- as.data.table(arrow::read_parquet("mocks/gama_gals_for_R.parquet"))
-calibration_cat <- calibration_cat[total_ap_dust_r_VST < r_lim, ]
-#calibration_cat <- calibration_cat[completeness_selected == 1, ]
+calibration_cat <- calibration_cat[total_ap_dust_r_SDSS_matched < r_lim, ] # CHANGE the filter name
+#calibration_cat <- calibration_cat[ra < 142] #CHANGE for the field
 
-opt_param_init_guess <- c(5, 18, 0, 0, 8, 9.0000, 1.5000)
+
+opt_param_init_guess <- c(5, 18, 8, 9.0000, 1.5000) # CHANGE removing the zeros should be 3rd and 4th
 data(circsamp)
 
-Dleft <- c(129.0, 174.0, 211.5, 399.0)
+Dleft <- c(129.0, 174.0, 211.5, 339.0)
 Dright <- c(141.0, 186.0, 223.5, 351.0)
 Dbottom <- c(-2, -3, -2, -35)
 Dtop <- c(3, 2, 3, -30)
@@ -95,26 +96,27 @@ optimFoFfunc <- function(par, data) {
   cat <- data$maincat
   bgal <- par[1]/100
   rgal <- par[2]
-  Eb <- par[3]/10
-  Er <- par[4]/10
-  deltacontrast <- par[5]/10
-  deltarad <- par[6]
-  deltar <- par[7]
+  #Eb <- par[3]/10 # CHANGE removing these
+  #Er <- par[4]/10
+  deltacontrast <- par[3]/10 #CHANGE have to update these numbers
+  deltarad <- par[4]
+  deltar <- par[5]
 
-  number_of_lightcones = 1
-  FoFout <- foreach(LC = 1:number_of_lightcones) %do% {
-
-    cat_subset <- as.data.frame(cat)
-
-    precalc_file <- paste("./dist_precalc.rda")
-    column_data_names = intersect(c("ra", "dec", "zobs", "total_ap_dust_r_VST"), colnames(cat_subset))
+  lightcone_numbers = c(0, 2, 3, 4, 5, 7, 8, 9)
+  #number_of_lightcones = 1
+  FoFout <- foreach(lightcone = lightcone_numbers) %dopar% {
+    print(paste('doing: ', lightcone))
+    cat_subset <- as.data.frame(cat[LC == lightcone,])
+    print('done')
+    precalc_file <- paste("./dist_precalc_", lightcone, ".rda")
+    column_data_names = intersect(c("ra", "dec", "zobs", "total_ap_dust_r_SDSS_matched"), colnames(cat_subset)) #CHANGE the filter name
 
     if (file.exists(precalc_file)) {
       load(precalc_file)
     } else {
       print("Couldn't find precalculated distances, generating now")
       pre_calc_distances <- FoFempint(
-        data = cat_subset, bgal = bgal, rgal = rgal, Eb = Eb, Er = Er, coscale = T,
+        data = cat_subset, bgal = bgal, rgal = rgal, Eb = 0, Er = 0, coscale = T, #CHANGE Eb and Er to zero.
         NNscale = 20, groupcalc = F, precalc = F, halocheck = T, apmaglim = r_lim,
         colnames = column_data_names, denfunc = LFswmlfunc,
         intfunc = RunningDensity_z, intLumfunc = LFswmlintfuncLum, useorigind = T,
@@ -122,7 +124,7 @@ optimFoFfunc <- function(par, data) {
         realIDs = cat_subset$CATAID, extra = F, sigerr = 0, MagDenScale = 0,
         deltacontrast = deltacontrast, deltarad = deltarad, deltar = deltar,
         circsamp = circsamp, zvDmod = zvDmod737, Dmodvz = Dmodvz737, multcut = 5,
-        left = Dleft, right = Dright, bottom = Dbottom, top = Dtop, OmegaL = 0.7,
+        left = Dleft, right = Dright, bottom = Dbottom, top = Dtop, OmegaL = 0.7, # CHANGE Dtops and stuff
         OmegaM = 0.3
       )
       save(pre_calc_distances, file = precalc_file)
@@ -131,7 +133,7 @@ optimFoFfunc <- function(par, data) {
 
     out <- tryCatch({
       catGroup <- FoFempint(
-        data = as.data.frame(cat_subset), bgal = bgal, rgal = rgal, Eb = Eb, Er = Er, coscale = T,
+        data = as.data.frame(cat_subset), bgal = bgal, rgal = rgal, Eb = 0, Er = 0, coscale = T, #CHANGE setting Eb and Er to zero
         NNscale = 20, groupcalc = F, precalc = T, halocheck = T, apmaglim = r_lim,
         denfunc = LFswmlfunc, colnames = column_data_names,
         intfunc = RunningDensity_z, intLumfunc = LFswmlintfuncLum, useorigind = T,
@@ -141,7 +143,7 @@ optimFoFfunc <- function(par, data) {
         realIDs = cat_subset$CATAID, deltacontrast = deltacontrast,
         deltarad = deltarad, deltar = deltar, circsamp = circsamp, verbose = FALSE,
         zvDmod = zvDmod737, Dmodvz = Dmodvz737, multcut = 5, left = Dleft,
-        right = Dright, bottom = Dbottom, top = Dtop, OmegaL = 0.7, OmegaM = 0.3
+        right = Dright, bottom = Dbottom, top = Dtop, OmegaL = 0.7, OmegaM = 0.3 # CHANGE the dtop stuff
       )
 
       list(
@@ -191,76 +193,16 @@ optimFoFfunc <- function(par, data) {
   if (is.na(FoM) || is.infinite(FoM)) {
     FoM <- 0
   }
-  message('LP: ', 1000 * FoM)
-  return(1000 * FoM)
+  message('LP: ', 100 * FoM)
+  return(100 * FoM)
 }
-
 
 
 selectz_gama <- calibration_cat$zobs > 0.01 & calibration_cat$zobs < 0.5
 cal_data_gama <- list(maincat = calibration_cat[selectz_gama, ])
 cat_subset_test = cal_data_gama$maincat
-column_data_names = intersect(c("ra", "dec", "zobs", "total_ap_dust_r_VST"), colnames(cat_subset_test))
+column_data_names = intersect(c("ra", "dec", "zobs", "total_ap_dust_r_SDSS_matched"), colnames(cat_subset_test)) # CHANGE the filter name
 
-
-# Testing the FoFempint
-# Testing the "best params"
-
-#bgal <- 5.934/100
-#rgal <- 19.56
-#Eb <- 0 #par[3]
-#Er <- 0 #par[4]
-#deltacontrast <- 9 #par[5]
-#deltarad <- 1.5 #par[6]
-#deltar <- 12 #par[7]
-
-#message("Here we go. Run this shit.")
-#catBest <- FoFempint(
-#  data = as.data.frame(cat_subset_test), bgal = bgal, rgal = rgal, Eb = Eb, Er = Er, coscale = T,
-#  NNscale = 20, groupcalc = T, precalc = F, halocheck = T, apmaglim = r_lim,
-#  denfunc = LFswmlfunc, colnames = column_data_names,
-#  intfunc = RunningDensity_z, intLumfunc = LFswmlintfuncLum, useorigind = T,
-#  dust = 0, dists = pre_calc_distances$dists, deltaden = pre_calc_distances$deltaden,
-#  denexp = pre_calc_distances$denexp, oblim = pre_calc_distances$oblim, sigerr = 0,
-#  scalemass = 1, scaleflux = 1, localcomp = 0.9, extra = F, MagDenScale = 0,
-#  realIDs = cat_subset_test$CATAID, deltacontrast = deltacontrast,
-#  deltarad = deltarad, deltar = deltar, circsamp = circsamp, verbose = FALSE,
-#  zvDmod = zvDmod737, Dmodvz = Dmodvz737, multcut = 5, left = Dleft,
-#  right = Dright, bottom = Dbottom, top = Dtop, OmegaL = 0.7, OmegaM = 0.3
-#)
-
-#write.csv(as.data.frame(catBest$grouptable), 'best_testing_group_catalog.csv', row.names=FALSE, quote=FALSE)
-#write.csv(as.data.frame(catBest$grefs), 'best_testing_galaxy_linking_table.csv', row.names=FALSE, quote=FALSE)
-
-# Testing the "default params"
-bgal <- opt_param_init_guess[1]/100
-rgal <- opt_param_init_guess[2]
-Eb <- 0 #par[3]
-Er <- 0 #par[4]
-deltacontrast <- 9 #par[5]
-deltarad <- 1.5 #par[6]
-deltar <- 12 #par[7]
-
-#message("Now run this shit.")
-#catDefault <- FoFempint(
-#  data = as.data.frame(cat_subset_test), bgal = bgal, rgal = rgal, Eb = Eb, Er = Er, coscale = T,
-#  NNscale = 20, groupcalc = T, precalc = F, halocheck = T, apmaglim = r_lim,
-#  denfunc = LFswmlfunc, colnames = column_data_names,
-#  intfunc = RunningDensity_z, intLumfunc = LFswmlintfuncLum, useorigind = T,
-#  dust = 0, dists = pre_calc_distances$dists, deltaden = pre_calc_distances$deltaden,
-#  denexp = pre_calc_distances$denexp, oblim = pre_calc_distances$oblim, sigerr = 0,
-#  scalemass = 1, scaleflux = 1, localcomp = 0.9, extra = F, MagDenScale = 0,
-#  realIDs = cat_subset_test$CATAID, deltacontrast = deltacontrast,
-#  deltarad = deltarad, deltar = deltar, circsamp = circsamp, verbose = FALSE,
-#  zvDmod = zvDmod737, Dmodvz = Dmodvz737, multcut = 5, left = Dleft[2],
-#  right = Dright[2], bottom = Dbottom[2], top = Dtop[2], OmegaL = 0.7, OmegaM = 0.3
-#)
-
-#write.csv(as.data.frame(catDefault$grouptable), 'default_testing_group_catalog.csv', row.names=FALSE, quote=FALSE)
-#write.csv(as.data.frame(catDefault$grefs), 'default_testing_galaxy_linking_table.csv', row.names=FALSE, quote=FALSE)
-#message("We are done. Kill program")
-
-#optimFoFfunc(c(0.005, 10, -0.5, -0.6, 0.04, 0.90, 1.00), cal_data_gama)
 
 # For the particular calibration set of lightcones I have, I can squeeze in this many interations is a bit less than the
 # walltime limit of the long queue in Setonix (96 hours) using one full node (128 cores, 230 GB memory)
@@ -271,9 +213,9 @@ opt_gama <- Highlander(opt_param_init_guess,
     #lower = c(4, 15),
     #upper = c(6, 25),
     #parm.names = c("bgal", "rgal"),
-    lower = c(3, 15, -0.5, -0.5, 0, 7, 1.00),
-    upper = c(7, 25, 0.5, 0.5, 12, 11, 2),
-    parm.names = c("bgal", "rgal", "Eb", "Er", "deltacontrast", "deltarad", "deltar"),
+    lower = c(3, 15, 0, 7, 1.00), #CHANGE removing the Eb Er things
+    upper = c(7, 25, 12, 11, 2),
+    parm.names = c("bgal", "rgal", "deltacontrast", "deltarad", "deltar"), #CHANGE removing Eb and Er
     seed=666
 )
 # Printing the best parameters and FoM
