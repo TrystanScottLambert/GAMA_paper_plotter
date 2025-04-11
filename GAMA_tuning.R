@@ -5,11 +5,17 @@ library(data.table)
 library(celestial)
 library(arrow)
 library(Highlander)
+library(dplyr)
+library(remotes)
+library(profvis)
 
+#Sys.setenv(R_MAX_VSIZE = "100Gb")
 # to test the current version of the package
-remove.packages('FoF')
-devtools::install_local('/Users/00115372/Desktop/FoFR', force=TRUE)
+#remove.packages('FoF')
+#remotes::install_local('./FoFR', force=TRUE)
 library(FoF)
+
+FILTER_NAME = "total_ap_dust_r_SDSS_matched"
 
 t0 <- proc.time()
 set.seed(2)
@@ -78,8 +84,9 @@ RunningDensity_D <- approxfun(temp$x, GalRanCounts * tempint / RunningVolume, ru
 RunningDensity_z <- approxfun(distfunc_D2z(temp$x), GalRanCounts * tempint / RunningVolume, rule = 2)
 
 r_lim <- 19.65
-calibration_cat <- as.data.table(arrow::read_parquet("mocks/gama_gals_for_R.parquet"))
+calibration_cat <- as.data.table(arrow::read_parquet("mocks/gama_gals_for_R.parquet"), col_select = c("CATAID", "ra", "dec", "zobs", FILTER_NAME))
 calibration_cat <- calibration_cat[total_ap_dust_r_SDSS_matched < r_lim, ] # CHANGE the filter name
+#calibration_cat <- calibration_cat[, .SD[sample(.N, min(.N, 100000))], by = LC] # CHANGE Randomly sampling the database.
 #calibration_cat <- calibration_cat[ra < 142] #CHANGE for the field
 
 
@@ -101,15 +108,14 @@ optimFoFfunc <- function(par, data) {
   deltacontrast <- par[3]/10 #CHANGE have to update these numbers
   deltarad <- par[4]
   deltar <- par[5]
-
-  lightcone_numbers = c(0, 2, 3, 4, 5, 7, 8, 9)
-  #number_of_lightcones = 1
+  print('This is working and is doing something...')
+  lightcone_numbers = c(0, 2, 3, 4, 5, 7, 8, 9, 10)
   FoFout <- foreach(lightcone = lightcone_numbers) %dopar% {
     print(paste('doing: ', lightcone))
     cat_subset <- as.data.frame(cat[LC == lightcone,])
     print('done')
-    precalc_file <- paste("./dist_precalc_", lightcone, ".rda")
-    column_data_names = intersect(c("ra", "dec", "zobs", "total_ap_dust_r_SDSS_matched"), colnames(cat_subset)) #CHANGE the filter name
+    precalc_file <- paste("./dist_precalc_", lightcone, ".rda", sep = "")
+    column_data_names = intersect(c("ra", "dec", "zobs", FILTER_NAME), colnames(cat_subset)) #CHANGE the filter name
 
     if (file.exists(precalc_file)) {
       load(precalc_file)
@@ -132,6 +138,7 @@ optimFoFfunc <- function(par, data) {
     }
 
     out <- tryCatch({
+      t0 = proc.time()
       catGroup <- FoFempint(
         data = as.data.frame(cat_subset), bgal = bgal, rgal = rgal, Eb = 0, Er = 0, coscale = T, #CHANGE setting Eb and Er to zero
         NNscale = 20, groupcalc = F, precalc = T, halocheck = T, apmaglim = r_lim,
@@ -145,7 +152,8 @@ optimFoFfunc <- function(par, data) {
         zvDmod = zvDmod737, Dmodvz = Dmodvz737, multcut = 5, left = Dleft,
         right = Dright, bottom = Dbottom, top = Dtop, OmegaL = 0.7, OmegaM = 0.3 # CHANGE the dtop stuff
       )
-
+      t1 = proc.time()
+      print(paste("time taken: ", t1-t0))
       list(
         mockfrac_num = catGroup$summary["mockfrac_num"],
         mockfrac_den = catGroup$summary["mockfrac_den"],
@@ -176,7 +184,7 @@ optimFoFfunc <- function(par, data) {
   mockint_den <- NULL
   fofint_num <- NULL
   fofint_den <- NULL
-
+  gc()
   for (o in FoFout) {
     mockfrac_num <- c(mockfrac_num, o[["mockfrac_num"]])
     mockfrac_den <- c(mockfrac_den, o[["mockfrac_den"]])
@@ -200,24 +208,22 @@ optimFoFfunc <- function(par, data) {
 
 selectz_gama <- calibration_cat$zobs > 0.01 & calibration_cat$zobs < 0.5
 cal_data_gama <- list(maincat = calibration_cat[selectz_gama, ])
-cat_subset_test = cal_data_gama$maincat
-column_data_names = intersect(c("ra", "dec", "zobs", "total_ap_dust_r_SDSS_matched"), colnames(cat_subset_test)) # CHANGE the filter name
 
 
 # For the particular calibration set of lightcones I have, I can squeeze in this many interations is a bit less than the
 # walltime limit of the long queue in Setonix (96 hours) using one full node (128 cores, 230 GB memory)
-opt_gama <- Highlander(opt_param_init_guess,
+profvis(opt_gama <- Highlander(opt_param_init_guess,
     Data = cal_data_gama, likefunc = optimFoFfunc, likefunctype = "CMA",
     # optim_iters = 2, liketype = 'max', Niters = c(5,5), NfinalMCMC = 25,
-    optim_iters = 2, liketype = "max", Niters = c(250, 250), NfinalMCMC = 2500,
+    optim_iters = 2, liketype = "max", Niters = c(100, 100), NfinalMCMC = 2500,
     #lower = c(4, 15),
     #upper = c(6, 25),
-    #parm.names = c("bgal", "rgal"),
+    #parm.names = c("bgal", "gal"),
     lower = c(3, 15, 0, 7, 1.00), #CHANGE removing the Eb Er things
-    upper = c(7, 25, 12, 11, 2),
-    parm.names = c("bgal", "rgal", "deltacontrast", "deltarad", "deltar"), #CHANGE removing Eb and Er
+    upper = c(7, 25, 12, 11, 2),    parm.names = c("bgal", "rgal", "deltacontrast", "deltarad", "deltar"), #CHANGE removing Eb and Er
     seed=666
-)
+))
+#stopImplicitCluster()
 # Printing the best parameters and FoM
 print(paste("Final FoM =", opt_gama$LP / 100))
 print(paste("Final parameters = ", opt_gama$parm[1], ", ", opt_gama$parm[2], ", ",

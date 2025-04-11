@@ -55,16 +55,16 @@ LFswmlintfuncLum=approxfun(tempLFswmlLum[,1], tempLFswmlLum[,4], rule=c(2,2))
 #
 #Randoms stuff:
 #
-RanCat = fread('gama_g09_randoms.txt')
+RanCat = fread('gama_combined_randoms.txt')
 
 N = 1e4
 G09area = skyarea(c(129,141), c(-2,3))
 G12area = skyarea(c(174,186), c(-3,2))
 G15area = skyarea(c(211.5,223.5), c(-2,3))
 G23area = skyarea(c(339, 351), c(-35, -30))
-#gama_fraction_sky = sum(G09area['areafrac'], G12area['areafrac'], G15area['areafrac'], G23area['areafrac'])
+gama_fraction_sky = sum(G09area['areafrac'], G12area['areafrac'], G15area['areafrac'], G23area['areafrac'])
 ### THIS NEEDS TO BE EDITED BASED ON THE RANDOMS I GUESS
-gama_fraction_sky = G09area['areafrac']
+#gama_fraction_sky = G09area['areafrac']
 
 distfunc_z2D = cosmapfunc('z', 'CoDist', H0=100, OmegaM=0.25, OmegaL=0.75, zrange=c(0,1), step='a', res=N) # redshift to comoving distance
 distfunc_D2z = cosmapfunc('CoDist', 'z', H0=100, OmegaM=0.25, OmegaL=0.75, zrange=c(0,1), step='a', res=N) # comoving distance to redshift
