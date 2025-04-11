@@ -39,9 +39,7 @@ def rename_ids_col_names(data_frame: pd.DataFrame) -> pd.DataFrame:
     Renames the data_frame columns for galaxy ids and group ids to keep consitent with the FoFR
     naming conventions which FoFempint looks for when comparing to mock catalogs.
     """
-    df_new = data_frame.rename(
-        columns={"id_group_sky": "GroupID", "id_galaxy_sky": "CATAID"}
-    )
+    df_new = data_frame.rename(columns={"id_group_sky": "GroupID", "id_galaxy_sky": "CATAID"})
     return df_new
 
 
@@ -54,11 +52,8 @@ def main():
 
     lightcones = []
     for lightcone_number in lightcones_number:
-        print(lightcone_number)
-        infile = (
-            f"gama_mock_data/all_lightcones/gama{lightcone_number}_gals_matched.parquet"
-        )
-
+        print(f"Now doing lightcone: {lightcone_number}")
+        infile = (f"gama_mock_data/all_lightcones/gama{lightcone_number}_gals_matched.parquet")
         df = pd.read_parquet(infile)
         df = rename_groups(df, "id_group_sky", -1)
         df = rename_ids_col_names(df)
