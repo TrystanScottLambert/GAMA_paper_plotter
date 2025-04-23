@@ -55,16 +55,16 @@ LFswmlintfuncLum=approxfun(tempLFswmlLum[,1], tempLFswmlLum[,4], rule=c(2,2))
 #
 #Randoms stuff:
 #
-RanCat = fread('gama_combined_randoms.txt')
+RanCat = fread('gama_g09_randoms.txt')
 
 N = 1e4
 G09area = skyarea(c(129,141), c(-2,3))
 G12area = skyarea(c(174,186), c(-3,2))
 G15area = skyarea(c(211.5,223.5), c(-2,3))
 G23area = skyarea(c(339, 351), c(-35, -30))
-gama_fraction_sky = sum(G09area['areafrac'], G12area['areafrac'], G15area['areafrac'], G23area['areafrac'])
+#gama_fraction_sky = sum(G09area['areafrac'], G12area['areafrac'], G15area['areafrac'], G23area['areafrac'])
 ### THIS NEEDS TO BE EDITED BASED ON THE RANDOMS I GUESS
-#gama_fraction_sky = G09area['areafrac']
+gama_fraction_sky = G09area['areafrac']
 
 distfunc_z2D = cosmapfunc('z', 'CoDist', H0=100, OmegaM=0.25, OmegaL=0.75, zrange=c(0,1), step='a', res=N) # redshift to comoving distance
 distfunc_D2z = cosmapfunc('CoDist', 'z', H0=100, OmegaM=0.25, OmegaL=0.75, zrange=c(0,1), step='a', res=N) # comoving distance to redshift
@@ -108,13 +108,13 @@ data_column_names <- column_names[-1]
 optuse=c(0.06, 18, 0, -0.02, 0.63, 9.0000, 1.5000, 12.0000)
 # see if this magdenscale makes a difference optuse[5]
 cat=FoF::FoFempint(
-  data=gama, bgal=optuse[1], rgal=optuse[2], Eb=optuse[3], Er=optuse[4],
+  data=gama, bgal=optuse[1], rgal=optuse[2], Eb=0, Er=0,
   coscale=T, NNscale=3, groupcalc=T, precalc=F, halocheck=F, apmaglim=19.65, colnames=data_column_names,
   denfunc=LFswmlfunc, intfunc=RunningDensity_z, intLumfunc=LFswmlintfuncLum,
   useorigind=T, realIDs = T, dust=0,scalemass=1,scaleflux=1,extra=F,
-  MagDenScale=1,deltacontrast=optuse[6],deltarad=optuse[7],deltar=optuse[8],
+  MagDenScale=0,deltacontrast=optuse[6],deltarad=optuse[7],deltar=optuse[8],
   circsamp=circsamp,Mmax=1e15, zvDmod = z_to_dmod, Dmodvz = dmod_to_z,
-  left=339, right=351, top = -35, bottom = -30)
+  left=129, right=141, top = 3, bottom = -2, verbose=TRUE)
 
 # writing the group catalog and the galaxy linking table.
 write.csv(as.data.frame(cat$grouptable), 'g09_group_catalog.csv', row.names=FALSE, quote=FALSE)

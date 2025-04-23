@@ -11,9 +11,10 @@ library(profvis)
 
 #Sys.setenv(R_MAX_VSIZE = "100Gb")
 # to test the current version of the package
-#remove.packages('FoF')
-#remotes::install_local('./FoFR', force=TRUE)
+remove.packages('FoF')
+remotes::install_local('~/Desktop/FoFR')
 library(FoF)
+
 
 FILTER_NAME = "total_ap_dust_r_SDSS_matched"
 
@@ -90,7 +91,7 @@ calibration_cat <- calibration_cat[total_ap_dust_r_SDSS_matched < r_lim, ] # CHA
 #calibration_cat <- calibration_cat[ra < 142] #CHANGE for the field
 
 
-opt_param_init_guess <- c(5, 18, 8, 9.0000, 1.5000) # CHANGE removing the zeros should be 3rd and 4th
+opt_param_init_guess <- c(5, 18) # CHANGE removing the zeros should be 3rd and 4th
 data(circsamp)
 
 Dleft <- c(129.0, 174.0, 211.5, 339.0)
@@ -105,9 +106,9 @@ optimFoFfunc <- function(par, data) {
   rgal <- par[2]
   #Eb <- par[3]/10 # CHANGE removing these
   #Er <- par[4]/10
-  deltacontrast <- par[3]/10 #CHANGE have to update these numbers
-  deltarad <- par[4]
-  deltar <- par[5]
+  #deltacontrast <- par[3]/10 #CHANGE have to update these numbers
+  #deltarad <- par[4]
+  #deltar <- par[5]
   print('This is working and is doing something...')
   lightcone_numbers = c(0, 2, 3, 4, 5, 7, 8, 9, 10)
   FoFout <- foreach(lightcone = lightcone_numbers) %dopar% {
@@ -121,14 +122,13 @@ optimFoFfunc <- function(par, data) {
       load(precalc_file)
     } else {
       print("Couldn't find precalculated distances, generating now")
-      pre_calc_distances <- FoFempint(
-        data = cat_subset, bgal = bgal, rgal = rgal, Eb = 0, Er = 0, coscale = T, #CHANGE Eb and Er to zero.
-        NNscale = 20, groupcalc = F, precalc = F, halocheck = T, apmaglim = r_lim,
+      pre_calc_distances <- FoF::FoFempint(
+        data = cat_subset, bgal = bgal, rgal = rgal, coscale = T, #CHANGE Eb and Er to zero.
+        NNscale = 20, precalc = F, halocheck = T, apmaglim = r_lim,
         colnames = column_data_names, denfunc = LFswmlfunc,
         intfunc = RunningDensity_z, intLumfunc = LFswmlintfuncLum, useorigind = T,
-        dust = 0, scalemass = 1, scaleflux = 1, localcomp = 0.9,
-        realIDs = cat_subset$CATAID, extra = F, sigerr = 0, MagDenScale = 0,
-        deltacontrast = deltacontrast, deltarad = deltarad, deltar = deltar,
+        dust = 0, scalemass = 1, scaleflux = 1, localcomp = 0.95,
+        realIDs = cat_subset$CATAID, extra = F, sigerr = 0,
         circsamp = circsamp, zvDmod = zvDmod737, Dmodvz = Dmodvz737, multcut = 5,
         left = Dleft, right = Dright, bottom = Dbottom, top = Dtop, OmegaL = 0.7, # CHANGE Dtops and stuff
         OmegaM = 0.3
@@ -139,16 +139,15 @@ optimFoFfunc <- function(par, data) {
 
     out <- tryCatch({
       t0 = proc.time()
-      catGroup <- FoFempint(
-        data = as.data.frame(cat_subset), bgal = bgal, rgal = rgal, Eb = 0, Er = 0, coscale = T, #CHANGE setting Eb and Er to zero
-        NNscale = 20, groupcalc = F, precalc = T, halocheck = T, apmaglim = r_lim,
+      catGroup <- FoF::FoFempint(
+        data = as.data.frame(cat_subset), bgal = bgal, rgal = rgal, coscale = T, #CHANGE setting Eb and Er to zero
+        NNscale = 20, precalc = T, halocheck = T, apmaglim = r_lim,
         denfunc = LFswmlfunc, colnames = column_data_names,
         intfunc = RunningDensity_z, intLumfunc = LFswmlintfuncLum, useorigind = T,
-        dust = 0, dists = pre_calc_distances$dists, deltaden = pre_calc_distances$deltaden,
+        dust = 0, dists = pre_calc_distances$dists,
         denexp = pre_calc_distances$denexp, oblim = pre_calc_distances$oblim, sigerr = 0,
-        scalemass = 1, scaleflux = 1, localcomp = 0.9, extra = F, MagDenScale = 0,
-        realIDs = cat_subset$CATAID, deltacontrast = deltacontrast,
-        deltarad = deltarad, deltar = deltar, circsamp = circsamp, verbose = FALSE,
+        scalemass = 1, scaleflux = 1, localcomp = 0.95, extra = F,
+        realIDs = cat_subset$CATAID, circsamp = circsamp, verbose = FALSE,
         zvDmod = zvDmod737, Dmodvz = Dmodvz737, multcut = 5, left = Dleft,
         right = Dright, bottom = Dbottom, top = Dtop, OmegaL = 0.7, OmegaM = 0.3 # CHANGE the dtop stuff
       )
@@ -212,17 +211,13 @@ cal_data_gama <- list(maincat = calibration_cat[selectz_gama, ])
 
 # For the particular calibration set of lightcones I have, I can squeeze in this many interations is a bit less than the
 # walltime limit of the long queue in Setonix (96 hours) using one full node (128 cores, 230 GB memory)
-profvis(opt_gama <- Highlander(opt_param_init_guess,
+opt_gama <- Highlander(opt_param_init_guess,
     Data = cal_data_gama, likefunc = optimFoFfunc, likefunctype = "CMA",
-    # optim_iters = 2, liketype = 'max', Niters = c(5,5), NfinalMCMC = 25,
     optim_iters = 2, liketype = "max", Niters = c(100, 100), NfinalMCMC = 2500,
-    #lower = c(4, 15),
-    #upper = c(6, 25),
-    #parm.names = c("bgal", "gal"),
-    lower = c(3, 15, 0, 7, 1.00), #CHANGE removing the Eb Er things
-    upper = c(7, 25, 12, 11, 2),    parm.names = c("bgal", "rgal", "deltacontrast", "deltarad", "deltar"), #CHANGE removing Eb and Er
-    seed=666
-))
+    lower = c(3, 15), #CHANGE
+    upper = c(7, 25),
+    parm.names = c("bgal", "rgal"), #CHANGE removing Eb and Er
+)
 #stopImplicitCluster()
 # Printing the best parameters and FoM
 print(paste("Final FoM =", opt_gama$LP / 100))
