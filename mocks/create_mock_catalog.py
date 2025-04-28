@@ -8,7 +8,21 @@ import pandas as pd
 import numpy as np
 
 # from astropy.table import Table
-
+def assign_g_field(ra: float) -> str:
+    """
+    Assigns which gama field the ra value is in.
+    """
+    if 128 < ra < 142:
+        field = 'g09'
+    elif 173 < ra < 187:
+        field = 'g12'
+    elif 211 < ra < 224:
+        field = 'g15'
+    elif 338 < ra < 352:
+        field = 'g23'
+    else:
+        field = 'NOT IN GAMA'
+    return field
 
 def rename_groups(
     data_frame: pd.DataFrame, group_id_col_name: str, static_id: int
@@ -53,27 +67,19 @@ def main():
     lightcones = []
     for lightcone_number in lightcones_number:
         print(f"Now doing lightcone: {lightcone_number}")
-        infile = (f"gama_mock_data/all_lightcones/gama{lightcone_number}_gals_matched.parquet")
+        infile = f"gama_mock_data/all_lightcones/gama{lightcone_number}_gals_matched.parquet"
         df = pd.read_parquet(infile)
         df = rename_groups(df, "id_group_sky", -1)
         df = rename_ids_col_names(df)
         df = df[df["total_ap_dust_r_SDSS_matched"] < 19.65]
         df = df[df["ra"] > 128]  # removing the gama02 region
-        df["LC"] = np.ones(len(df)) * lightcone_number
+        df["LC"] = np.ones(len(df)).astype(int) * lightcone_number
         lightcones.append(df)
 
     df_all = pd.concat(lightcones)
+    df_all['g_field'] = df_all['ra'].apply(assign_g_field)
+    df_all['lightcone_gamafield'] = df_all['LC'].astype(str) + df_all['g_field']
     df_all.to_parquet(outfile, index=False)
-
-    # Doing galform
-    # galform_infile = 'G3CMockGalv04.fits'
-    # galform_outfile = 'gama_gals_for_R_galform.parquet'
-    # df_galform = Table.read(galform_infile).to_pandas()
-    # df_galform = df_galform[
-    # (df_galform['RA'] < 141) & (df_galform['Rpetro'] < 19.65) & (df_galform['Volume'] == 1)]
-    # df_galform_new = df_galform.rename(columns={"GalID": "CATAID"})
-    # df_galform_new.to_parquet(galform_outfile)
-
 
 if __name__ == "__main__":
     main()

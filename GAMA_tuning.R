@@ -7,7 +7,6 @@ library(arrow)
 library(Highlander)
 library(dplyr)
 library(remotes)
-library(profvis)
 
 #Sys.setenv(R_MAX_VSIZE = "100Gb")
 # to test the current version of the package
@@ -55,41 +54,54 @@ LFswmlintfuncLum <- function(x) {
 N <- 1e4
 # RanCat = fread('/scratch/pawsey0119/mbravo/DEVILS_data/DEVILS_D10_RandomCat_240212_v0.2.csv')
 # Commented out because fread would throw an error in Setonix (???)
-random_catalog_factor <- 400 # CHANGE this
+
+
+gen_random_density <- function(gama_random_filename, gama_field_skyarea, random_catalog_factor) {
+  RanCat = as.data.table(read.csv(gama_random_filename))
+  GAMAarea_fractional = gama_field_skyarea[2]
+  distfunc_z2D <- cosmapfunc("z", "CoDist", H0 = 100, OmegaM = 0.30, OmegaL = 0.70, zrange = c(0, 3), step = "a", res = N)
+  distfunc_D2z <- cosmapfunc("CoDist", "z", H0 = 100, OmegaM = 0.30, OmegaL = 0.70, zrange = c(0, 3), step = "a", res = N)
+  temp <- distfunc_z2D(RanCat[, z])
+  RanCat[, "CoDist"] <- temp
+  GalRanCounts <- (dim(RanCat)[1] / random_catalog_factor)
+  bin <- 40
+  temp <- density(RanCat[, CoDist], bw = bin / sqrt(12), from = 0, to = 2000, n = N, kern = "rect")
+  rm(RanCat)
+  tempfunc <- approxfun(temp$x, temp$y, rule = 2)
+  tempint <- {}
+  for (colim in seq(0, 2000, len = N)) {
+    tempint <- c(tempint, integrate(tempfunc, colim - bin / 2, colim + bin / 2)$value)
+  }
+
+  RunningVolume <- (4 / 3) * pi * (seq(0, 2000, len = N) + bin / 2)^3
+  RunningVolume <- RunningVolume - ((4 / 3) * pi * (seq(0, 2000, len = N) - bin / 2)^3)
+  RunningVolume <- GAMAarea_fractional * RunningVolume #CHANGE
+  RunningDensity_z <- approxfun(distfunc_D2z(temp$x), GalRanCounts * tempint / RunningVolume, rule = 2)
+  return(RunningDensity_z)
+}
+
+
+random_catalog_factor <- 400
 RanCat <- as.data.table(read.csv("gama_combined_randoms.txt")) # CHANGE gama_combined_randoms.txt
 G09area <- skyarea(c(129, 141), c(-2, 3))
 G12area <- skyarea(c(174, 186), c(-3, 2))
 G15area <- skyarea(c(211.5, 223.5), c(-2, 3))
 G23area <- skyarea(c(339, 351), c(-35, -30))
-GAMAarea_fractional <- sum(G09area[2], G12area[2], G15area[2], G23area[2])
 
-distfunc_z2D <- cosmapfunc("z", "CoDist", H0 = 100, OmegaM = 0.30, OmegaL = 0.70, zrange = c(0, 3), step = "a", res = N)
-distfunc_D2z <- cosmapfunc("CoDist", "z", H0 = 100, OmegaM = 0.30, OmegaL = 0.70, zrange = c(0, 3), step = "a", res = N)
-temp <- distfunc_z2D(RanCat[, z])
-RanCat[, "CoDist"] <- temp
-GalRanCounts <- (dim(RanCat)[1] / random_catalog_factor)
+g09_random_file = "gama_g09_randoms.txt"
+g12_random_file = "gama_g12_randoms.txt"
+g15_random_file = "gama_g15_randoms.txt"
+g23_random_file = "gama_g23_randoms.txt"
 
-bin <- 40
-temp <- density(RanCat[, CoDist], bw = bin / sqrt(12), from = 0, to = 2000, n = N, kern = "rect")
-rm(RanCat)
-tempfunc <- approxfun(temp$x, temp$y, rule = 2)
-tempint <- {}
-for (colim in seq(0, 2000, len = N)) {
-    tempint <- c(tempint, integrate(tempfunc, colim - bin / 2, colim + bin / 2)$value)
-}
+running_density_z_g09 = gen_random_density(g09_random_file, G09area, random_catalog_factor)
+running_density_z_g12 = gen_random_density(g12_random_file, G12area, random_catalog_factor)
+running_density_z_g15 = gen_random_density(g15_random_file, G15area, random_catalog_factor)
+running_density_z_g23 = gen_random_density(g23_random_file, G23area, random_catalog_factor)
 
-RunningVolume <- (4 / 3) * pi * (seq(0, 2000, len = N) + bin / 2)^3
-RunningVolume <- RunningVolume - ((4 / 3) * pi * (seq(0, 2000, len = N) - bin / 2)^3)
-RunningVolume <- GAMAarea_fractional * RunningVolume #CHANGE
-RunningDensity_D <- approxfun(temp$x, GalRanCounts * tempint / RunningVolume, rule = 2)
-RunningDensity_z <- approxfun(distfunc_D2z(temp$x), GalRanCounts * tempint / RunningVolume, rule = 2)
 
 r_lim <- 19.65
 calibration_cat <- as.data.table(arrow::read_parquet("mocks/gama_gals_for_R.parquet"), col_select = c("CATAID", "ra", "dec", "zobs", FILTER_NAME))
 calibration_cat <- calibration_cat[total_ap_dust_r_SDSS_matched < r_lim, ] # CHANGE the filter name
-#calibration_cat <- calibration_cat[, .SD[sample(.N, min(.N, 100000))], by = LC] # CHANGE Randomly sampling the database.
-#calibration_cat <- calibration_cat[ra < 142] #CHANGE for the field
-
 
 opt_param_init_guess <- c(5, 18) # CHANGE removing the zeros should be 3rd and 4th
 data(circsamp)
@@ -109,14 +121,27 @@ optimFoFfunc <- function(par, data) {
   #deltacontrast <- par[3]/10 #CHANGE have to update these numbers
   #deltarad <- par[4]
   #deltar <- par[5]
-  print('This is working and is doing something...')
-  lightcone_numbers = c(0, 2, 3, 4, 5, 7, 8, 9, 10)
-  FoFout <- foreach(lightcone = lightcone_numbers) %dopar% {
-    print(paste('doing: ', lightcone))
-    cat_subset <- as.data.frame(cat[LC == lightcone,])
-    print('done')
-    precalc_file <- paste("./dist_precalc_", lightcone, ".rda", sep = "")
+  lightcone_numbers = c(3)#, 3, 4, 5, 7, 8, 9, 10)
+  gama_fields = c('g09', 'g12', 'g15', 'g23')
+  combinations <- expand.grid(lightcone_numbers, gama_fields)
+  all_fields <- paste0(combinations$Var1, combinations$Var2)
+
+  FoFout <- foreach(field = all_fields) %dopar% {
+    cat_subset <- as.data.frame(cat[lightcone_gamafield == field,])
+    precalc_file <- paste("./dist_precalc_", field, ".rda", sep = "")
     column_data_names = intersect(c("ra", "dec", "zobs", FILTER_NAME), colnames(cat_subset)) #CHANGE the filter name
+
+    if (grepl("g09", field)) {
+      RunningDensity_z = running_density_z_g09
+    } else if (grepl("g12", field)) {
+      RunningDensity_z = running_density_z_g12
+    } else if (grepl("g15", field)) {
+      RunningDensity_z = running_density_z_g15
+    } else if (grepl("g23", field)) {
+      RunningDensity_z = running_density_z_g23
+    } else {
+      stop("WHAT THE HELL??? THIS ISN'T EVEN IN GAMA!")
+    }
 
     if (file.exists(precalc_file)) {
       load(precalc_file)
