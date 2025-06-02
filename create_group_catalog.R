@@ -85,7 +85,7 @@ for (colim in seq(0, 2000, len=N)){
 
 # work out the comoving volume at each bin.
 radii = seq(0, 2000, len=N)
-volume_of_shells = ((4/3)*pi*(radii + bin/2))**3 - ((4/3)*pi*(radii - bin/2))**3
+volume_of_shells = (4/3)*pi*((radii + bin/2))**3 - (4/3)*pi*((radii - bin/2))**3
 
 RunningVolume = gama_fraction_sky*volume_of_shells
 RunningDensity_D = approxfun(temp$x, GalRanCounts*tempint/RunningVolume, rule=2)
@@ -101,20 +101,23 @@ RunningDensity_z = approxfun(distfunc_D2z(temp$x), GalRanCounts*tempint/RunningV
 gama = fread('gama_galaxy_catalogs/g09_galaxies.dat')
 gama[,'AB_r'] = gama[,Rpetro] - z_to_dmod(gama[,Z])
 gama = as.data.frame(gama)
+gama = gama[gama$Z < 0.5,]
+print("FUCK EVERYONES CUNT!!!!!")
+print(length(gama$Z))
 column_names <- colnames(gama)
 gama_ids = gama['UberID']
 data_column_names <- column_names[-1]
 #I'm just assuming 100% completeness and I should have a look at the way Aaron does the completeness stuff.
-optuse=c(0.06, 36, 0, 0, 0, 9.0000, 1.5000, 12.0000)
+optuse=c(0.06, 18, 0, 0, 0, 0, 1.5000, 12.0000)
 # see if this magdenscale makes a difference optuse[5]
 cat=FoF::FoFempint(
   data=gama, bgal=optuse[1], rgal=optuse[2],
-  coscale=T, NNscale=3, precalc=F, halocheck=F, apmaglim=19.65, colnames=data_column_names,
+  coscale=T, NNscale=3, precalc=F, halocheck=F, groupcalc=T, apmaglim=19.8, colnames=data_column_names,
   denfunc=LFswmlfunc, intfunc=RunningDensity_z, intLumfunc=LFswmlintfuncLum,
-  useorigind=T, realIDs = T, dust=0,scalemass=1,scaleflux=1,extra=F,
-  circsamp=circsamp, Mmax=1e15, zvDmod = z_to_dmod, Dmodvz = dmod_to_z,
+  useorigind=T, realIDs = T, dust=0, scalemass=1, scaleflux=1, extra=F, OmegaM = 0.3, OmegaL = 0.7,
+  circsamp=circsamp, Mmax=1e15, zvDmod = z_to_dmod, Dmodvz = dmod_to_z, Eb=0, Er=0, MagDenScale = 0,
   left=129, right=141, top = 3, bottom = -2, verbose=TRUE)
 
 # writing the group catalog and the galaxy linking table.
-# write.csv(as.data.frame(cat$grouptable), 'g09_group_catalog.csv', row.names=FALSE, quote=FALSE)
-write.csv(as.data.frame(cat$grefs), 'g09_galaxy_linking_table.csv', row.names=FALSE, quote=FALSE)
+write.csv(as.data.frame(cat$grouptable), 'g09_group_catalog_aaron.csv', row.names=FALSE, quote=FALSE)
+write.csv(as.data.frame(cat$grefs), 'g09_galaxy_linking_table_aaron.csv', row.names=FALSE, quote=FALSE)

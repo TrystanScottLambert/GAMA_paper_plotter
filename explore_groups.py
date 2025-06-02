@@ -57,7 +57,7 @@ if __name__ == '__main__':
     add_xyz(df_galaxies, 'RA', 'DEC', 'Z')
     df_group_galaxies = df_galaxies.iloc[gal_ids - 1]
 
-    infile = 'g09_group_catalog.csv'
+    infile = 'g09_group_catalog.csv'   
     df = pd.read_csv(infile)
     add_xyz(df, 'IterCenRA', 'IterCenDEC', 'MedianZ')
 

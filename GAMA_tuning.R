@@ -61,8 +61,7 @@ gen_random_density <- function(gama_random_filename, gama_field_skyarea, random_
   GAMAarea_fractional = gama_field_skyarea[2]
   distfunc_z2D <- cosmapfunc("z", "CoDist", H0 = 100, OmegaM = 0.30, OmegaL = 0.70, zrange = c(0, 3), step = "a", res = N)
   distfunc_D2z <- cosmapfunc("CoDist", "z", H0 = 100, OmegaM = 0.30, OmegaL = 0.70, zrange = c(0, 3), step = "a", res = N)
-  temp <- distfunc_z2D(RanCat[, z])
-  RanCat[, "CoDist"] <- temp
+  RanCat[, "CoDist"] <- distfunc_z2D(RanCat[, z])
   GalRanCounts <- (dim(RanCat)[1] / random_catalog_factor)
   bin <- 40
   temp <- density(RanCat[, CoDist], bw = bin / sqrt(12), from = 0, to = 2000, n = N, kern = "rect")
@@ -75,7 +74,7 @@ gen_random_density <- function(gama_random_filename, gama_field_skyarea, random_
 
   RunningVolume <- (4 / 3) * pi * (seq(0, 2000, len = N) + bin / 2)^3
   RunningVolume <- RunningVolume - ((4 / 3) * pi * (seq(0, 2000, len = N) - bin / 2)^3)
-  RunningVolume <- GAMAarea_fractional * RunningVolume #CHANGE
+  RunningVolume <- GAMAarea_fractional * RunningVolume
   RunningDensity_z <- approxfun(distfunc_D2z(temp$x), GalRanCounts * tempint / RunningVolume, rule = 2)
   return(RunningDensity_z)
 }
