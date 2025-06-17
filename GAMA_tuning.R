@@ -99,7 +99,7 @@ running_density_z_g23 = gen_random_density(g23_random_file, G23area, random_cata
 
 
 r_lim <- 19.65
-calibration_cat <- as.data.table(arrow::read_parquet("mocks/gama_gals_for_R.parquet"), col_select = c("CATAID", "ra", "dec", "zobs", FILTER_NAME))
+calibration_cat <- as.data.table(arrow::read_parquet("mocks/gama_gals_for_R.parquet"), col_select = c("CATAID", "ra", "dec", "zobs", FILTER_NAME, "GroupID"))
 calibration_cat <- calibration_cat[total_ap_dust_r_SDSS_matched < r_lim, ] # CHANGE the filter name
 
 opt_param_init_guess <- c(5, 18) # CHANGE removing the zeros should be 3rd and 4th
@@ -113,19 +113,20 @@ Dtop <- c(3, 2, 3, -30)
 optimFoFfunc <- function(par, data) {
   message(cat(par))
   cat <- data$maincat
-  bgal <- par[1]/100
-  rgal <- par[2]
+  bgal <- 0.05#par[1]/100
+  rgal <- 18#par[2]
   #Eb <- par[3]/10 # CHANGE removing these
   #Er <- par[4]/10
   #deltacontrast <- par[3]/10 #CHANGE have to update these numbers
   #deltarad <- par[4]
   #deltar <- par[5]
-  lightcone_numbers = c(3)#, 3, 4, 5, 7, 8, 9, 10)
+  lightcone_numbers = c(0)#, 3, 4, 5, 7, 8, 9, 10)
   gama_fields = c('g09', 'g12', 'g15', 'g23')
   combinations <- expand.grid(lightcone_numbers, gama_fields)
   all_fields <- paste0(combinations$Var1, combinations$Var2)
 
-  FoFout <- foreach(field = all_fields) %dopar% {
+  print("MAKIGN IT")
+  FoFout <- foreach(field = all_fields) %do% {
     cat_subset <- as.data.frame(cat[lightcone_gamafield == field,])
     precalc_file <- paste("./dist_precalc_", field, ".rda", sep = "")
     column_data_names = intersect(c("ra", "dec", "zobs", FILTER_NAME), colnames(cat_subset)) #CHANGE the filter name
@@ -162,7 +163,7 @@ optimFoFfunc <- function(par, data) {
     }
 
     out <- tryCatch({
-      t0 = proc.time()
+      t0 = Sys.time()
       catGroup <- FoF::FoFempint(
         data = as.data.frame(cat_subset), bgal = bgal, rgal = rgal, coscale = T, #CHANGE setting Eb and Er to zero
         NNscale = 20, precalc = T, halocheck = T, apmaglim = r_lim,
@@ -175,8 +176,8 @@ optimFoFfunc <- function(par, data) {
         zvDmod = zvDmod737, Dmodvz = Dmodvz737, multcut = 5, left = Dleft,
         right = Dright, bottom = Dbottom, top = Dtop, OmegaL = 0.7, OmegaM = 0.3 # CHANGE the dtop stuff
       )
-      t1 = proc.time()
-      print(paste("time taken: ", t1-t0))
+      t1 = Sys.time()
+      message("time taken: ", t1 - t0)
       list(
         mockfrac_num = catGroup$summary["mockfrac_num"],
         mockfrac_den = catGroup$summary["mockfrac_den"],

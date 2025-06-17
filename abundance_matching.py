@@ -49,10 +49,9 @@ regions = [g09, g12, g15, g23]
 
 GAMA_MAG_LIMIT = 19.65
 RANDOM_OVERFACTOR = 400  # The number of times larger the random catalog is.
+REDSHIFT_CUT = 0.5
 
 # reading in the actual gama09 region data
-df_gama = pd.read_csv("gama_galaxy_catalogs/g09_galaxies.dat", sep=" ")
-
 
 for lightcone in lightcones:
     abundance_matched_fields = []
@@ -64,10 +63,13 @@ for lightcone in lightcones:
         df_shark = pd.read_parquet(LIGHTCONE_PREFIX + lightcone)
         df_shark = df_shark[
             (df_shark["ra"] >= region.ra_range[0])
-            & (df_shark["dec"] <= region.ra_range[1])
+            & (df_shark["ra"] <= region.ra_range[1])
             & (df_shark["total_ap_dust_r_SDSS"] < GAMA_MAG_LIMIT)
+            & (df_shark["zobs"] <= REDSHIFT_CUT)
             ]
+        print('HELLO BITCH: ', len(df_shark))
 
+        df_gama = pd.read_csv(f"gama_galaxy_catalogs/{region.random_file_name.split('_')[1]}_galaxies.dat", sep = ' ')
         # finding the offset in the z-band that is needed to
         nz_random = np.histogram(df_randoms["z"], bins=z_bin, density=False)[0]/ RANDOM_OVERFACTOR
         nz_shark = np.histogram(df_shark["zobs"], bins=z_bin, density=False)[0]
@@ -85,27 +87,28 @@ for lightcone in lightcones:
                 mag_difference[i] = GAMA_MAG_LIMIT - shark_mags[idx]
 
         # visualising the offset in each bin.
-        mag_diff_spline = make_splrep(z_mid, mag_difference, k=3, s=0.1)
+        mag_diff_spline = make_splrep(z_mid, mag_difference, k=3, s=1)
 
-        #plt.scatter(z_mid, mag_difference)
-        #plt.plot(plot_x, mag_diff_spline(plot_x))
-        #plt.show()
+        plt.scatter(z_mid, mag_difference)
+        plt.plot(plot_x, mag_diff_spline(plot_x))
+        plt.show()
 
         # apply the correction to the shark catalog
         df_shark["total_ap_dust_r_SDSS_matched"] = \
             df_shark["total_ap_dust_r_SDSS"] + mag_diff_spline(df_shark["zobs"])
         new_shark = df_shark[df_shark["total_ap_dust_r_SDSS_matched"] <= GAMA_MAG_LIMIT]
 
-        #plt.hist(new_shark["zobs"], bins=z_bin, histtype="step", label="Matched SHARK")
-        #plt.hist(df_shark["zobs"], bins=z_bin, histtype="step", label="Not matched SHARK")
-        # plt.hist(df_randoms['z']/400, bins=z_bin, histtype='step', label="Randoms")
-        #plt.hist(df_gama["Z"], bins=z_bin, label="GAMA galaxies")
-        #plt.legend()
-        #plt.ylim(0, 5000)
-        #plt.show()
+        plt.hist(new_shark["zobs"], bins=z_bin, histtype="step", label="Matched SHARK")
+        plt.hist(df_shark["zobs"], bins=z_bin, histtype="step", label="Not matched SHARK")
+        plt.hist(df_randoms['z']/400, bins=z_bin, histtype='step', label="Randoms")
+        plt.hist(df_gama["Z"], bins=z_bin, label="GAMA galaxies")
+        plt.legend()
+        plt.ylim(0, 5000)
+        plt.show()
         print(len(df_shark), len(new_shark), len(df_gama))
         print(len(df_shark)/len(new_shark))
         print(len(df_shark)/len(df_gama))
+        print(len(new_shark)/len(df_gama))
         print()
         abundance_matched_fields.append(new_shark)
 

@@ -47,6 +47,26 @@ def rename_groups(
     data_frame["id_group_sky"] = data_frame["id_group_sky"].replace(new_id_mapping)
     return data_frame
 
+def rename_groups_new(data_frame: pd.DataFrame, group_id_col_name: str) -> pd.DataFrame:
+    """
+    Renames group IDs in the DataFrame:
+    - Keeps isolated galaxies (group_id == -1) unchanged.
+    - Renumbers all other group IDs to be sequential from 1 to N.
+    """
+    # Copy to avoid modifying original
+    df = data_frame.copy()
+
+    # Identify unique group IDs excluding -1
+    valid_ids = sorted(df.loc[df[group_id_col_name] != -1, group_id_col_name].unique())
+
+    # Create new mapping: old_id -> new_id (starting from 1)
+    new_id_mapping = {old_id: new_id for new_id, old_id in enumerate(valid_ids, start=1)}
+
+    # Apply mapping, leave -1 untouched
+    df["id_group_sky"] = df[group_id_col_name].map(new_id_mapping).fillna(-1).astype(int)
+
+    return df
+
 
 def rename_ids_col_names(data_frame: pd.DataFrame) -> pd.DataFrame:
     """
@@ -72,6 +92,7 @@ def main():
         df = rename_groups(df, "id_group_sky", -1)
         df = rename_ids_col_names(df)
         df = df[df["total_ap_dust_r_SDSS_matched"] < 19.65]
+        df = df[df["zobs"] < 0.5]
         df = df[df["ra"] > 128]  # removing the gama02 region
         df["LC"] = np.ones(len(df)).astype(int) * lightcone_number
         lightcones.append(df)

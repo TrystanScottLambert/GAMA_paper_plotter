@@ -1,10 +1,10 @@
 # R script to run the GAMA group finder on G19
-#library(FoF)
 library(celestial)
 library(data.table)
 #detach("package:FoF", unload = TRUE)  # Unload the package
 remove.packages('FoF')
 devtools::install_local('/Users/00115372/Desktop/FoFR', force=TRUE)
+library(FoF)
 
 #
 # Create the interpolated functions which will be used in the final implementation.
@@ -15,11 +15,13 @@ k_corrections={}
 for(i in 1:length(redshift)){
   k_corrections = c(k_corrections, FoF::KEcorr(redshift[i])[2])} #K+E corrections
 
+k_corrections <- rep(0, length(k_corrections)) #TODO: Remove this once we have added things properly
 # Creating the redshift to distance modulus and distance modulus to redshift functions.
 z_to_mod_matrix = data.frame(redshift = redshift, distance_modulus = cosdistDistMod(redshift, OmegaM=0.25, OmegaL=0.75, H0=100)+k_corrections)
 z_to_dmod = approxfun(z_to_mod_matrix[,1], z_to_mod_matrix[,2])
 dmod_to_z = approxfun(z_to_mod_matrix[,2], z_to_mod_matrix[,1])
 
+LFswml = FoF::LFswml
 cut=-14
 tempLFswml = LFswml[LFswml[,2]< cut,c(2,3)]
 tempLFswml = cbind(tempLFswml,2*tempLFswml[,2]*(1/sqrt(LFswml[LFswml[,2]< cut,4])))
@@ -102,14 +104,13 @@ gama = fread('gama_galaxy_catalogs/g09_galaxies.dat')
 gama[,'AB_r'] = gama[,Rpetro] - z_to_dmod(gama[,Z])
 gama = as.data.frame(gama)
 gama = gama[gama$Z < 0.5,]
-print("FUCK EVERYONES CUNT!!!!!")
-print(length(gama$Z))
 column_names <- colnames(gama)
 gama_ids = gama['UberID']
 data_column_names <- column_names[-1]
 #I'm just assuming 100% completeness and I should have a look at the way Aaron does the completeness stuff.
 optuse=c(0.06, 18, 0, 0, 0, 0, 1.5000, 12.0000)
 # see if this magdenscale makes a difference optuse[5]
+start.now = Sys.time()
 cat=FoF::FoFempint(
   data=gama, bgal=optuse[1], rgal=optuse[2],
   coscale=T, NNscale=3, precalc=F, halocheck=F, groupcalc=T, apmaglim=19.8, colnames=data_column_names,
@@ -117,6 +118,8 @@ cat=FoF::FoFempint(
   useorigind=T, realIDs = T, dust=0, scalemass=1, scaleflux=1, extra=F, OmegaM = 0.3, OmegaL = 0.7,
   circsamp=circsamp, Mmax=1e15, zvDmod = z_to_dmod, Dmodvz = dmod_to_z, Eb=0, Er=0, MagDenScale = 0,
   left=129, right=141, top = 3, bottom = -2, verbose=TRUE)
+end.now = Sys.time()
+print(paste("Time taken: ", end.now - start.now))
 
 # writing the group catalog and the galaxy linking table.
 write.csv(as.data.frame(cat$grouptable), 'g09_group_catalog_aaron.csv', row.names=FALSE, quote=FALSE)
