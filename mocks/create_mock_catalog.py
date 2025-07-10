@@ -87,9 +87,9 @@ def main():
     lightcones = []
     for lightcone_number in lightcones_number:
         print(f"Now doing lightcone: {lightcone_number}")
-        infile = f"gama_mock_data/all_lightcones/gama{lightcone_number}_gals_matched.parquet"
+        infile = f"gama_mock_data/all_lightcones/gama{lightcone_number}_gals.parquet"
         df = pd.read_parquet(infile)
-        df = rename_groups(df, "id_group_sky", -1)
+        df = rename_groups_new(df, "id_group_sky")
         df = rename_ids_col_names(df)
         df = df[df["total_ap_dust_r_SDSS_matched"] < 19.65]
         df = df[df["zobs"] < 0.5]

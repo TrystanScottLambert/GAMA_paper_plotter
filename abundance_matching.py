@@ -34,7 +34,6 @@ class Region:
     """
     Data structure for gama regions containing area, random file, etc.
     """
-
     area: float
     random_file_name: str
     ra_range: tuple[float, float]
@@ -51,7 +50,6 @@ GAMA_MAG_LIMIT = 19.65
 RANDOM_OVERFACTOR = 400  # The number of times larger the random catalog is.
 REDSHIFT_CUT = 0.5
 
-# reading in the actual gama09 region data
 
 for lightcone in lightcones:
     abundance_matched_fields = []
@@ -67,7 +65,6 @@ for lightcone in lightcones:
             & (df_shark["total_ap_dust_r_SDSS"] < GAMA_MAG_LIMIT)
             & (df_shark["zobs"] <= REDSHIFT_CUT)
             ]
-        print('HELLO BITCH: ', len(df_shark))
 
         df_gama = pd.read_csv(f"gama_galaxy_catalogs/{region.random_file_name.split('_')[1]}_galaxies.dat", sep = ' ')
         # finding the offset in the z-band that is needed to
